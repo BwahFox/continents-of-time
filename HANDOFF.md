@@ -63,6 +63,8 @@ finite eras (Classic, Indev) are small islands, since that is what those worlds 
 
 ## State as of 2026-08-30 (session 6): 1.0.1 — safe under C2ME's threaded worldgen
 
+**Release 1.0.1 is published (2026-08-30):** https://github.com/BwahFox/continents-of-time/releases/tag/v1.0.1 — both jars, CHANGELOG's notes.
+
 **Session 6 (2026-08-30):** the author pregenerated a 1.0.0 world with Chunky under C2ME and got "Failed to load
 chunk" toasts — two races, both fixed in `AtlasChunkGenerator` (ARCHITECTURE "Threaded world generation"): the
 per-era structure state's lazy fill (now completed inside the `computeIfAbsent`) and Moderner Beta's per-chunk
