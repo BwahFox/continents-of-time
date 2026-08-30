@@ -1,9 +1,10 @@
+//~ map_codec
 package dev.continentsoftime.atlas;
 
-import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import dev.continentsoftime.ContinentsOfTime;
 import dev.continentsoftime.atlas.layout.Seabed;
+import dev.continentsoftime.util.Compat;
 import net.minecraft.util.Util;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
@@ -41,11 +42,15 @@ import dev.continentsoftime.atlas.timeline.EraStructures;
 import dev.continentsoftime.atlas.timeline.EraVersion;
 import java.util.concurrent.ConcurrentHashMap;
 import net.minecraft.world.level.levelgen.blending.Blender;
-import org.jspecify.annotations.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.EnumSet;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+//? if <1.21
+//import java.util.concurrent.Executor;
+//? if <1.21.2
+//import net.minecraft.world.level.levelgen.GenerationStep;
 
 /**
  * The master generator. Every per-chunk generation step is routed to the {@link HostedEra} that owns the chunk;
@@ -64,7 +69,7 @@ import java.util.concurrent.CompletableFuture;
  * and use what they need of it, and ocean chunks are surfaced by it directly.
  */
 public class AtlasChunkGenerator extends NoiseBasedChunkGenerator {
-	public static final MapCodec<AtlasChunkGenerator> CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
+	public static final com.mojang.serialization.MapCodec<AtlasChunkGenerator> CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
 		BiomeSource.CODEC.fieldOf("biome_source").forGetter(g -> g.biomeSource),
 		RegistryOps.retrieveGetter(Registries.NOISE_SETTINGS)
 	).apply(i, i.stable(AtlasChunkGenerator::new)));
@@ -158,8 +163,14 @@ public class AtlasChunkGenerator extends NoiseBasedChunkGenerator {
 	/** Same as vanilla's — the atlas's biome source validates biomes — but with the owning era's structure state. */
 	@Override
 	public void createStructures(RegistryAccess registryAccess, ChunkGeneratorStructureState levelState, StructureManager structureManager,
-	                             ChunkAccess chunk, StructureTemplateManager templateManager, ResourceKey<Level> dimension) {
-		super.createStructures(registryAccess, stateFor(owner(chunk)), structureManager, chunk, templateManager, dimension);
+	                             ChunkAccess chunk, StructureTemplateManager templateManager
+	                             //? if >=1.21.2
+	                             , ResourceKey<Level> dimension
+	) {
+		super.createStructures(registryAccess, stateFor(owner(chunk)), structureManager, chunk, templateManager
+			//? if >=1.21.2
+			, dimension
+		);
 	}
 
 	/** Chunk futures swallow exceptions into a failed chunk result; log ours first so the cause is in the log. */
@@ -174,18 +185,22 @@ public class AtlasChunkGenerator extends NoiseBasedChunkGenerator {
 
 	private @Nullable HostedEra owner(ChunkAccess chunk) {
 		ChunkPos pos = chunk.getPos();
-		return atlas.ownerOfChunk(pos.x(), pos.z());
+		return atlas.ownerOfChunk(Compat.chunkX(pos), Compat.chunkZ(pos));
 	}
 
 	@Override
-	protected MapCodec<? extends ChunkGenerator> codec() {
+	protected com.mojang.serialization.MapCodec<? extends ChunkGenerator> codec() {
 		return CODEC;
 	}
 
 	// ---- per-chunk steps: the owning era does the work; the atlas does the ocean and the coasts ----
 
+	// Before 1.21 the biome and noise steps take the executor to run on as their first argument.
 	@Override
-	public CompletableFuture<ChunkAccess> createBiomes(RandomState randomState, Blender blender, StructureManager structureManager, ChunkAccess chunk) {
+	public CompletableFuture<ChunkAccess> createBiomes(
+		//? if <1.21
+		//Executor executor,
+		RandomState randomState, Blender blender, StructureManager structureManager, ChunkAccess chunk) {
 		HostedEra owner = owner(chunk);
 		if (owner == null) {
 			return CompletableFuture.supplyAsync(Util.name(() -> logged("ocean biomes", chunk, () -> {
@@ -195,16 +210,25 @@ public class AtlasChunkGenerator extends NoiseBasedChunkGenerator {
 		}
 		// Sea columns get the modern ocean at the surface step, not here: a ProtoChunk refuses biome reads until
 		// its status reaches BIOMES, which happens only after this future completes.
-		return owner.generator().createBiomes(randomState, blender, structureManager, chunk);
+		return owner.generator().createBiomes(
+			//? if <1.21
+			//executor,
+			randomState, blender, structureManager, chunk);
 	}
 
 	@Override
-	public CompletableFuture<ChunkAccess> fillFromNoise(Blender blender, RandomState randomState, StructureManager structureManager, ChunkAccess chunk) {
+	public CompletableFuture<ChunkAccess> fillFromNoise(
+		//? if <1.21
+		//Executor executor,
+		Blender blender, RandomState randomState, StructureManager structureManager, ChunkAccess chunk) {
 		HostedEra owner = owner(chunk);
 		if (owner == null) {
 			return CompletableFuture.supplyAsync(Util.name(() -> logged("ocean terrain", chunk, () -> buildOcean(chunk)), () -> "cot_ocean"), Util.backgroundExecutor());
 		}
-		return owner.generator().fillFromNoise(blender, randomState, structureManager, chunk)
+		return owner.generator().fillFromNoise(
+				//? if <1.21
+				//executor,
+				blender, randomState, structureManager, chunk)
 			.thenApply(c -> logged("shape coast", c, () -> shapeCoast(c, owner)));
 	}
 
@@ -222,11 +246,18 @@ public class AtlasChunkGenerator extends NoiseBasedChunkGenerator {
 		logged("paint sea after surface", chunk, () -> paintSea(chunk, randomState.sampler()));
 	}
 
+	// Before 1.21.2 carving is two steps (air, then liquid) and the step is an argument.
 	@Override
-	public void applyCarvers(WorldGenRegion region, long seed, RandomState randomState, BiomeManager biomeManager, StructureManager structureManager, ChunkAccess chunk) {
+	public void applyCarvers(WorldGenRegion region, long seed, RandomState randomState, BiomeManager biomeManager, StructureManager structureManager, ChunkAccess chunk
+	                         //? if <1.21.2
+	                         //, GenerationStep.Carving step
+	) {
 		HostedEra owner = owner(chunk);
 		if (owner != null) {
-			owner.generator().applyCarvers(region, seed, randomState, biomeManager, structureManager, chunk);
+			owner.generator().applyCarvers(region, seed, randomState, biomeManager, structureManager, chunk
+				//? if <1.21.2
+				//, step
+			);
 		}
 	}
 
@@ -243,6 +274,7 @@ public class AtlasChunkGenerator extends NoiseBasedChunkGenerator {
 	 * sort fails ("feature order cycle") — and it is never used: every chunk is decorated by one hosted generator.
 	 * Validate those instead, each over its own consistent biome set.
 	 */
+	//? if >=1.21 {
 	@Override
 	public void validate() {
 		for (HostedEra era : atlas.eras()) {
@@ -250,11 +282,14 @@ public class AtlasChunkGenerator extends NoiseBasedChunkGenerator {
 		}
 		atlas.oceanEra().generator().validate();
 	}
+	//?} else {
+	/*// 1.20.1 has no validate(): its feature sort runs lazily on decoration, which the atlas never does itself.
+	*///?}
 
 	@Override
 	public void spawnOriginalMobs(WorldGenRegion region) {
 		ChunkPos center = region.getCenter();
-		HostedEra owner = atlas.ownerOfChunk(center.x(), center.z());
+		HostedEra owner = atlas.ownerOfChunk(Compat.chunkX(center), Compat.chunkZ(center));
 		if (owner != null) {
 			owner.generator().spawnOriginalMobs(region);
 		}
@@ -329,7 +364,7 @@ public class AtlasChunkGenerator extends NoiseBasedChunkGenerator {
 				int z = pos.getMinBlockZ() + dz;
 				int floor = seabed.floor(x, z, atlas.layout().fieldAt(x, z));
 				for (int y = minY; y <= seaLevel; y++) {
-					chunk.setBlockState(cursor.set(x, y, z), y <= floor ? STONE : WATER, 0);
+					Compat.setBlock(chunk, cursor.set(x, y, z), y <= floor ? STONE : WATER);
 				}
 			}
 		}
@@ -369,7 +404,7 @@ public class AtlasChunkGenerator extends NoiseBasedChunkGenerator {
 					}
 					for (int y = maxY; y >= minY; y--) {
 						int from = y - lift;
-						chunk.setBlockState(cursor.set(x, y, z), from >= minY ? column[from - minY] : AIR, 0);
+						Compat.setBlock(chunk, cursor.set(x, y, z), from >= minY ? column[from - minY] : AIR);
 					}
 					touched = true;
 				}
@@ -379,7 +414,7 @@ public class AtlasChunkGenerator extends NoiseBasedChunkGenerator {
 					for (int y = minY; y <= seaLevel; y++) {
 						BlockState state = chunk.getBlockState(cursor.set(x, y, z));
 						if (state.isAir() || !state.getFluidState().isEmpty()) {
-							chunk.setBlockState(cursor, y == minY ? BEDROCK : y <= floor ? STONE : WATER, 0);
+							Compat.setBlock(chunk, cursor, y == minY ? BEDROCK : y <= floor ? STONE : WATER);
 						}
 					}
 					continue;
@@ -397,14 +432,14 @@ public class AtlasChunkGenerator extends NoiseBasedChunkGenerator {
 				}
 				if (top > upper) {
 					for (int y = upper + 1; y <= top; y++) {
-						chunk.setBlockState(cursor.set(x, y, z), y <= seaLevel ? WATER : AIR, 0);
+						Compat.setBlock(chunk, cursor.set(x, y, z), y <= seaLevel ? WATER : AIR);
 					}
 					top = upper;
 					touched = true;
 				}
 				if (top < lower) {
 					for (int y = Math.max(top + 1, minY); y <= lower; y++) {
-						chunk.setBlockState(cursor.set(x, y, z), STONE, 0);
+						Compat.setBlock(chunk, cursor.set(x, y, z), STONE);
 					}
 					top = lower;
 					touched = true;
@@ -413,13 +448,13 @@ public class AtlasChunkGenerator extends NoiseBasedChunkGenerator {
 				// Beta's presets put their sea at 64; the atlas's is the modern 63, and one coast-long step would show).
 				for (int y = top + 1; y <= seaLevel; y++) {
 					if (chunk.getBlockState(cursor.set(x, y, z)).isAir()) {
-						chunk.setBlockState(cursor, WATER, 0);
+						Compat.setBlock(chunk, cursor, WATER);
 						touched = true;
 					}
 				}
 				for (int y = Math.max(top + 1, seaLevel + 1); y <= seaLevel + 2; y++) {
 					if (!chunk.getBlockState(cursor.set(x, y, z)).getFluidState().isEmpty()) {
-						chunk.setBlockState(cursor, AIR, 0);
+						Compat.setBlock(chunk, cursor, AIR);
 						touched = true;
 					}
 				}

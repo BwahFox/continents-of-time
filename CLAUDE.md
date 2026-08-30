@@ -29,3 +29,7 @@ Standing rules (carried from VirtualMinecraft, details in memory):
   cross-version abstractions) — say why when recommending it.
 - Verify before calling anything done; build the harness culture early (the sibling project's eight
   no-Minecraft-needed harnesses are the model to copy).
+- **Two Minecraft versions, one source (Stonecutter):** `src/` is committed in its 26.2 form. If a version was
+  switched in place (`Set active project to 1.20.1`), run `Reset active project` before committing. Every
+  change must build for both nodes (`./gradlew build` does both) and keep version-specific code in the places
+  ARCHITECTURE.md lists ("Two Minecraft versions from one source").

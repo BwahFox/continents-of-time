@@ -1,5 +1,6 @@
 package dev.continentsoftime.config;
 
+import dev.continentsoftime.util.Compat;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
@@ -63,7 +64,7 @@ public record ContinentsConfig(int maxContinentSize, int oceanWidth, List<Identi
 			if (json.has("eras") && json.get("eras").isJsonArray()) {
 				List<Identifier> parsed = new ArrayList<>();
 				for (JsonElement e : json.getAsJsonArray("eras")) {
-					parsed.add(Identifier.parse(e.getAsString()));
+					parsed.add(Compat.parseId(e.getAsString()));
 				}
 				if (!parsed.isEmpty()) {
 					eras = List.copyOf(parsed);

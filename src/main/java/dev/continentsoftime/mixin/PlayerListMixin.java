@@ -1,7 +1,7 @@
 package dev.continentsoftime.mixin;
 
+import dev.continentsoftime.network.AtlasChannel;
 import dev.continentsoftime.network.AtlasInfoPayload;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.players.PlayerList;
@@ -21,8 +21,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class PlayerListMixin {
 	@Inject(method = "sendLevelInfo", at = @At("TAIL"))
 	private void continentsoftime$sendAtlasInfo(ServerPlayer player, ServerLevel level, CallbackInfo ci) {
-		if (ServerPlayNetworking.canSend(player, AtlasInfoPayload.TYPE)) {
-			ServerPlayNetworking.send(player, AtlasInfoPayload.of(level));
-		}
+		AtlasChannel.sendIfListening(player, level);
 	}
 }

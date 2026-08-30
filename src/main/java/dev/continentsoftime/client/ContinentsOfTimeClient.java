@@ -12,7 +12,15 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 public final class ContinentsOfTimeClient implements ClientModInitializer {
 	@Override
 	public void onInitializeClient() {
+		// The receiver runs on the network thread; the atlas is built on the client thread.
+		//? if >=1.20.5 {
 		ClientPlayNetworking.registerGlobalReceiver(AtlasInfoPayload.TYPE, (payload, context) -> ClientAtlas.apply(context.client(), payload));
+		//?} else {
+		/*ClientPlayNetworking.registerGlobalReceiver(AtlasInfoPayload.ID, (client, handler, buf, responseSender) -> {
+			AtlasInfoPayload payload = AtlasInfoPayload.read(buf);
+			client.execute(() -> ClientAtlas.apply(client, payload));
+		});
+		*///?}
 		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> ClientAtlas.clear());
 	}
 }

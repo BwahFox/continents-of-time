@@ -1,6 +1,19 @@
+// Shared by every Stonecutter node (versions/<mc>/): runs once per Minecraft version with that node's
+// gradle.properties. `sc.current.version` is the Minecraft version being built.
 plugins {
-	id 'net.fabricmc.fabric-loom' version "${loom_version}"
+	id 'net.fabricmc.fabric-loom' version "${loom_version}" apply false
+	id 'net.fabricmc.fabric-loom-remap' version "${loom_version}" apply false
 }
+
+// Minecraft 26.1+ ships unobfuscated (Loom's plain plugin, no mappings); older versions are obfuscated and are
+// built against Mojang's official mappings through Loom's remapping plugin.
+def unobfuscated = sc.current.parsed.matches('>=26.1')
+apply plugin: unobfuscated ? 'net.fabricmc.fabric-loom' : 'net.fabricmc.fabric-loom-remap'
+
+version = "${mod_version}+${sc.current.version}"
+base.archivesName = 'continentsoftime'
+def javaRelease = (project.property('java_version') as String).toInteger()
+def minecraftRange = project.property('minecraft_range') as String
 
 repositories {
 	// Loom adds the Minecraft/Fabric repositories automatically.
@@ -18,12 +31,42 @@ repositories {
 }
 
 dependencies {
-	minecraft "com.mojang:minecraft:${project.minecraft_version}"
-	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
-	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+	minecraft "com.mojang:minecraft:${sc.current.version}"
+	if (unobfuscated) {
+		implementation "net.fabricmc:fabric-loader:${loader_version}"
+		implementation "net.fabricmc.fabric-api:fabric-api:${fabric_api_version}"
+		// Moderner Beta: compiled against and loaded in the dev runtime; NOT bundled — packs install it themselves.
+		implementation "maven.modrinth:moderner-beta:${moderner_beta_version}"
+	} else {
+		mappings loom.officialMojangMappings()
+		modImplementation "net.fabricmc:fabric-loader:${loader_version}"
+		modImplementation "net.fabricmc.fabric-api:fabric-api:${fabric_api_version}"
+		modImplementation "maven.modrinth:moderner-beta:${moderner_beta_version}"
+	}
+}
 
-	// Moderner Beta: compiled against and loaded in the dev runtime; NOT bundled — packs install it themselves.
-	implementation "maven.modrinth:moderner-beta:${project.moderner_beta_version}"
+// The API renames between 1.20.1 and 26.2 that are pure spelling. Stonecutter applies them to the whole source
+// tree when a node is built or switched to (and reverses them on the way back); anything that is not a plain
+// rename is handled by //? conditions in the code, most of it in dev.continentsoftime.util.Compat.
+stonecutter {
+	replacements.string(sc.current.parsed.matches('<1.21.11')) {
+		replace 'Identifier', 'ResourceLocation'
+		replace '.identifier()', '.location()'
+		replace 'net.minecraft.util.Util', 'net.minecraft.Util'
+	}
+	replacements.string(sc.current.parsed.matches('<26.1')) {
+		replace 'net.minecraft.client.renderer.block.BlockAndTintGetter', 'net.minecraft.world.level.BlockAndTintGetter'
+	}
+	replacements.string(sc.current.parsed.matches('<1.21.2')) {
+		replace '.getMinY()', '.getMinBuildHeight()'
+	}
+	// Generators and biome sources are keyed by Codec before 1.20.5, by MapCodec after. Keyed ('map_codec'): only
+	// files that opt in with a `//~ map_codec` header line are touched — the two classes that declare such a codec,
+	// which write the type fully qualified so the rename catches exactly those spots.
+	replacements.string(sc.current.parsed.matches('<1.20.5'), 'map_codec') {
+		replace 'com.mojang.serialization.MapCodec<', 'com.mojang.serialization./*Map*/Codec<'
+		replace 'RecordCodecBuilder.mapCodec(', 'RecordCodecBuilder.create('
+	}
 }
 
 // The test source set holds JavaExec harnesses (no Minecraft needed), not JUnit tests.
@@ -32,13 +75,13 @@ tasks.named("test") {
 }
 
 // Layout harness: builds the atlas layout for a few seeds, asserts its guarantees, writes build/layout/<seed>.png.
-// `./gradlew layoutTest -Pseeds=1,2,3` picks the seeds.
+// `./gradlew layoutTest -Pseeds=1,2,3` picks the seeds (runs for every version; `:26.2:layoutTest` for one).
 tasks.register("layoutTest", JavaExec) {
 	group = "verification"
 	description = "Checks the continent layout headlessly (determinism, extents, gaps, every era seated) and renders maps."
 	classpath = sourceSets.test.runtimeClasspath
 	mainClass = "dev.continentsoftime.layout.LayoutHarness"
-	workingDir = projectDir
+	workingDir = rootProject.projectDir
 	if (project.hasProperty("seeds")) {
 		systemProperty "seeds", project.property("seeds")
 	}
@@ -50,7 +93,7 @@ tasks.register("climateTest", JavaExec) {
 	description = "Checks the client's per-continent climate routing headlessly (stub samplers, real layout, payload codec)."
 	classpath = sourceSets.test.runtimeClasspath
 	mainClass = "dev.continentsoftime.climate.ClimateHarness"
-	workingDir = projectDir
+	workingDir = rootProject.projectDir
 	if (project.hasProperty("seeds")) {
 		systemProperty "seeds", project.property("seeds")
 	}
@@ -62,49 +105,62 @@ tasks.register("timelineTest", JavaExec) {
 	description = "Checks era versions and the era-accurate structure filter headlessly."
 	classpath = sourceSets.test.runtimeClasspath
 	mainClass = "dev.continentsoftime.timeline.TimelineHarness"
-	workingDir = projectDir
+	workingDir = rootProject.projectDir
 }
 
-loom {
-	accessWidenerPath = file("src/main/resources/continentsoftime.accesswidener")
+// The access widener names Minecraft's members in the game's own names on 26.2 ("official") and in Mojang's
+// mappings on 1.20.1 ("named") — identical lines, different header — so each version has its own file.
+def accessWidener = unobfuscated ? 'continentsoftime.accesswidener' : 'continentsoftime-named.accesswidener'
 
+loom {
+	accessWidenerPath = rootProject.file("src/main/resources/${accessWidener}")
+	// Loom 1.17 remaps mixin targets in the jar itself; no annotation processor, no refmap.
+
+	// Run directories are per Minecraft version: run/<mc>/server and run/<mc>/client at the repository root.
 	runs {
 		server {
-			runDir "run/server"
+			runDir "../../run/${sc.current.version}/server"
 		}
 		client {
-			// The dev client: `./gradlew runClient`. Fabric API and Moderner Beta are on its classpath already.
-			// `--args="--quickPlaySingleplayer <save>"` loads a world in run/client/saves directly.
-			runDir "run/client"
+			// The dev client: `./gradlew :<mc>:runClient`. Fabric API and Moderner Beta are on its classpath already.
+			// `--args="--quickPlaySingleplayer <save>"` loads a world in run/<mc>/client/saves directly.
+			runDir "../../run/${sc.current.version}/client"
 			environmentVariable("__GL_THREADED_OPTIMIZATIONS", "0")
 		}
 	}
 }
 
 processResources {
-	def version = project.version
-	inputs.property "version", version
+	def expansion = [
+		version: project.version,
+		minecraft_range: minecraftRange,
+		java_version: javaRelease,
+		access_widener: accessWidener,
+	]
+	inputs.properties expansion
 
-	filesMatching("fabric.mod.json") {
-		expand "version": version
+	filesMatching(["fabric.mod.json", "continentsoftime.mixins.json"]) {
+		expand expansion
 	}
+	// Only the selected access widener ships.
+	exclude { it.name.endsWith('.accesswidener') && it.name != accessWidener }
 }
 
 tasks.withType(JavaCompile).configureEach {
-	it.options.release = 25
+	it.options.release = javaRelease
 }
 
 java {
 	withSourcesJar()
-	sourceCompatibility = JavaVersion.VERSION_25
-	targetCompatibility = JavaVersion.VERSION_25
+	sourceCompatibility = JavaVersion.toVersion(javaRelease)
+	targetCompatibility = JavaVersion.toVersion(javaRelease)
 }
 
 jar {
-	def projectName = project.name
+	def projectName = base.archivesName.get()
 	inputs.property "projectName", projectName
 
-	from("COPYING.LESSER") {
+	from(rootProject.file("COPYING.LESSER")) {
 		rename { "${it}_$projectName" }
 	}
 }

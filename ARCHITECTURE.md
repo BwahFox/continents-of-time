@@ -20,8 +20,8 @@ continent layout, the oceans between, and the seams beneath the water are this m
   reading it is a study pass.
 - License is MIT since its commit 55519d1 (LGPL before). Depending on it copies nothing; packs install it
   themselves. Our code stays LGPL-3.0 and original.
-- The one 26.2-specific cost: `NoiseBasedChunkGenerator` is final, so extending it needs an access widener
-  (`continentsoftime.accesswidener`). Moderner Beta does the same.
+- `NoiseBasedChunkGenerator` is final, so extending it needs an access widener (`continentsoftime.accesswidener`;
+  a Mojang-mapped twin for 1.20.1). Moderner Beta does the same.
 
 ## Moderner Beta, as seen from outside (study pass, 5.0.0-alpha.3)
 
@@ -272,7 +272,52 @@ overlays the trimmed map on the preset reference the biome source is built from 
 Moderner Beta's "no cave biomes" provider when no biome survives) — through Moderner Beta's public settings API,
 no mixin. `/cot structures <era>` also lists the era's remaining cave biomes.
 
+## Two Minecraft versions from one source (built 2026-08-30)
+
+The mod is built for **26.2** and **1.20.1** from the same `src/` tree with [Stonecutter](https://stonecutter.kikugie.dev)
+(the same tool Moderner Beta uses for its own versions): `settings.gradle` declares one node per version
+(`versions/1.20.1/`, `versions/26.2/`, each holding only a `gradle.properties` with that version's Fabric API,
+Moderner Beta and Java), and the shared `build.gradle` runs once per node. The source as committed is in its
+26.2 form (the VCS version); Stonecutter rewrites a processed copy per node at build time, and can switch `src/`
+itself for IDE work (`Set active project to 1.20.1` / `Reset active project` in the Gradle `stonecutter` group —
+reset before committing). `./gradlew build` builds both jars (`versions/<mc>/build/libs/continentsoftime-<ver>+<mc>.jar`);
+`:26.2:build` one. The harness tasks run per node too (`./gradlew layoutTest` checks both; `:1.20.1:layoutTest` one).
+
+**Toolchain.** One JDK, Java 25: it compiles 26.2 natively and 1.20.1 with `--release 17` (the game's minimum
+there; the jar is Java 17 bytecode), and runs both dev servers. 26.1+ ships unobfuscated, so that node uses
+Loom's plain plugin with no mappings; 1.20.1 is obfuscated, so its node uses Loom's remapping plugin against
+Mojang's official mappings — the same names as the unobfuscated game, which is what makes one source tree
+possible at all. Loom 1.17 remaps the mixins' targets and the access widener into the jar (no annotation
+processor, no refmap). The access widener exists twice (`continentsoftime.accesswidener` in the `official`
+namespace, `continentsoftime-named.accesswidener` for Mojang-mapped 1.20.1; same lines) and the build ships the
+one it used. Run directories are per version: `run/<mc>/server`, `run/<mc>/client`.
+
+**Where the versions differ in the code — kept in few, obvious places:**
+
+- Plain renames are string replacements in `build.gradle` (`Identifier` ↔ `ResourceLocation` and `.identifier()`
+  ↔ `.location()`; `net.minecraft.util.Util` ↔ `net.minecraft.Util`; `BlockAndTintGetter`'s package;
+  `.getMinY()` ↔ `.getMinBuildHeight()`; and, only in the two files that opt in with a `//~ map_codec` header,
+  `MapCodec` ↔ `Codec` for the generator and biome-source codecs).
+- Everything else is a `//? if <version>` Stonecutter condition. Most live in `util.Compat` (id factories,
+  block placement during generation, chunk coordinates, seed and registry access, the command permission).
+  The rest sit where a whole method's shape differs: the chunk-generation step signatures in
+  `AtlasChunkGenerator` (the executor argument before 1.21, the carving step before 1.21.2, the dimension key
+  in `createStructures`, no `validate()` on 1.20.1); the network payload (`AtlasInfoPayload` is a typed
+  `CustomPacketPayload` with a stream codec from 1.20.5, a hand-written channel message before; `AtlasChannel`
+  and the client entry point register/send/receive accordingly); the four client mixins (Moderner Beta's tint
+  sources are `BlockTintSource.colorInWorld` on 26.1+ and `BlockColor.getColor` before; the sky is an environment
+  attribute layer on 1.21.11+ and a local in `ClientLevel.getSkyColor` before; the fog weight lives in
+  `AtmosphericFogEnvironment.getBaseColor` on 1.21.11+ and in the static `FogRenderer.setupColor` before —
+  mirroring Moderner Beta's own version split for each); and one synthetic lambda name in
+  `ChunkProviderNoiseMixin` (Moderner Beta's 1.20.1 release was compiled by a JDK whose javac numbers lambdas
+  class-wide: `lambda$getBaseBlockSource$3` there, `$0` on 26.2 — checked against each release jar).
+- Per-version resources: `fabric.mod.json` and the mixin config are templates expanded by `processResources`
+  (Minecraft range, Java version, which access widener).
+
+Adding a Minecraft version means: a `versions/<mc>/gradle.properties`, a line in `settings.gradle`, and a pass
+over the replacements, `Compat`, and every `//?` site — `grep -rn '//?' src` lists them all.
+
 ## Not yet built
 
-The in-game checks listed in HANDOFF.md ("things to look at"), water tint and climate precipitation per continent
-(above), the 1.20.1 backport. See HANDOFF.md "Next work".
+The in-game checks listed in HANDOFF.md ("things to look at"), and water tint and climate precipitation per
+continent (above). See HANDOFF.md "Next work".

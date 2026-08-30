@@ -14,10 +14,11 @@ generator class; the atlas builds one complete Moderner Beta generator per era, 
 as one more era, and routes every chunk to the era that owns it. The continent layout, the oceans and the seams
 under them are this mod's own code and its whole difficulty.
 
-**Version targets (revised 2026-08-29):** **26.2 first** — development happens here because the 26.2 client is
-unobfuscated. **1.20.1 comes as a backport after the mod is complete**, not in parallel. Moderner Beta ships
-the same release for both, so the backport is a Stonecutter/branch job over our own code only; keep
-Minecraft-API-touching code in few, obvious places so that job stays small.
+**Version targets:** **26.2 and 1.20.1, from one source tree** (Stonecutter; built 2026-08-30 as the planned
+backport). Development happens in the 26.2 form (the unobfuscated client is the reason 26.2 came first), and
+every change must build for both — `./gradlew build` does. Moderner Beta ships the same release for both.
+Where the two versions differ in the code, and the rules for keeping that small: ARCHITECTURE.md "Two Minecraft
+versions from one source".
 
 ## The spec (from the author, 2026-08-29)
 
@@ -60,16 +61,22 @@ server-side and the biomes are data-driven and synced at login. **Keep it that w
 wide; the Legacy Console seat uses the *large* preset; Skylands is seated (floating islands over open ocean);
 finite eras (Classic, Indev) are small islands, since that is what those worlds were.
 
-## State as of 2026-08-30 (end of session 4)
+## State as of 2026-08-30 (end of session 5)
 
-**The layout, the oceans/seams, spawn, `/cot` and the optional client half (per-continent visuals) are built and
-verified — the visuals and the coasts by the author in the dev client (2026-08-29: "this works", "everything looks
-fine"). Session 4 then added, all verified on the server and pushed: Alpha winter mode in the default roster, the
-re-open fix (feature-sort cycle), the "no oceans" option, the infinite atlas, era-accurate structures and cave
-biomes. The author closed the session with "good enough for tonight". Only the backport remains on the list.**
+**Everything on the list is built. The layout, the oceans/seams, spawn, `/cot`, the optional client half, Alpha
+winter mode, the re-open fix, the "no oceans" option, the infinite atlas, era-accurate structures and cave biomes
+were all verified by session 4 (the visuals and the coasts by the author in the dev client). Session 5 did the
+1.20.1 backport: the repo is now a two-version Stonecutter build, both jars build, all three harnesses pass on
+both nodes, and a 1.20.1 dedicated server was probed end to end (details below). The one thing no session has
+seen live is the client half on 1.20.1 (grass/sky/fog per continent) — it compiles and its mixin targets remap,
+but the author's standing rule is no unasked dev-client launches, so that check is hers; recipe below.**
 
-- Build: `./gradlew build` (Java 25, Loom 1.17, Fabric API 0.158.0+26.2, Moderner Beta 5.0.0-alpha.3+26.2 from
-  the Modrinth maven) produces `build/libs/continentsoftime-0.1.0.jar`. No Stonecutter yet (26.2 only for now).
+- Build: `./gradlew build` (one JDK, Java 25; Loom 1.17; Stonecutter 0.9.7) produces
+  `versions/26.2/build/libs/continentsoftime-0.1.0+26.2.jar` (Fabric API 0.158.0+26.2, Moderner Beta
+  5.0.0-alpha.3+26.2, Java 25 bytecode) and `versions/1.20.1/build/libs/continentsoftime-0.1.0+1.20.1.jar`
+  (Fabric API 0.92.11+1.20.1, Moderner Beta 5.0.0-alpha.3+1.20.1, Mojang mappings, Java 17 bytecode).
+  `:26.2:build` / `:1.20.1:build` build one; every task below exists per node the same way (`:1.20.1:runServer`).
+  The 1.20.1 game runs fine under Java 25 in the dev environment (no JDK 17 installed or needed).
 - Code: `dev.continentsoftime.atlas` — `AtlasChunkGenerator`, `AtlasBiomeSource`, `HostedEra`, `AtlasSettings`,
   `Eras`, `Translated`; `atlas.layout` — `Layout`, `ContinentLayout`, `Footprint`, `Seat`, `Seabed`, `Noise`;
   `mixin` — eight small mixins into Moderner Beta that move anchored eras to their seats; `config.ContinentsConfig`.
@@ -131,14 +138,38 @@ biomes. The author closed the session with "good enough for tonight". Only the b
   beta_desert); creating a world skips that path, which is why it had never shown. The atlas now validates its
   hosted generators instead and never sorts the union (ARCHITECTURE "as seen from outside"). The author saw it
   as "safe mode got enabled / my test world corrupted" — that dialog is the generic load failure; read the log.
-- **Lesson from this session:** chunks generated in an earlier run stay on disk — the chunk pyramid pre-generates
+- **Lesson from session 4:** chunks generated in an earlier run stay on disk — the chunk pyramid pre-generates
   a radius around every loaded chunk — so a fix can look intermittent when re-probed on a used world. Verify
   on fresh chunks or a fresh world.
+- **1.20.1 backport (session 5, verified 2026-08-30):** dedicated 1.20.1 server (`:1.20.1:runServer`, world
+  `run/1.20.1/server/atlas`, seed 20260829, fresh), probed over RCON: the seat table is identical to the layout
+  harness's on both nodes (same seed, same layout — it is Minecraft-free); `/cot seats|where|structures` answer;
+  era-accurate structures hold (Beta 1.8.1: mineshafts, strongholds, villages + Moderner Beta's ocean shrine, no
+  cave biomes; Alpha: shrine only; modern: 16 sets); home east coast at z 0 — seabed from y 62 at x 3600 down to 53
+  by x 3800 with the modern ocean biomes; deep ocean at x 6000 — floor y 19, water to 63; Infdev 227 landfall at
+  x 10250 (land y 65..69, the era's own biomes); Classic 0.0.14a seat (box x 8560..8816, z -10336..-10080) — its
+  level's terrain (y 64..75) and its own biome inside the box, warm ocean outside (the finite-era translation
+  mixins work on 1.20.1); Skylands seat — bedrock/stone seabed to y 18, water to 63, islands at y 96..113 (the
+  lift works); Legacy Console's centre row is that era's own ocean for this seed (water to 62, floors 30..48,
+  land-biome patches underwater — the same height-based injection noted on 26.2). No generation errors in the
+  log. **Cross-checked against a fresh 26.2 world with the same seed, same rows:** the seat table, every column's
+  biome, the Classic level, the Skylands islands (y 96..113) and the Skylands centre column are identical; the
+  only differences are 1..3-block "top block" deltas at sea and coast columns, which are per-version vanilla
+  decoration (kelp/seagrass counted as a top block) and the home continent being each version's own vanilla
+  generator — not the atlas. Also observed (both versions, pre-existing): the atlas ocean's water surface is y 63 while the home
+  continent's own vanilla oceans top out at y 62 — a one-block step where the two meet; the author accepted the
+  coasts as-is, so it is only noted here.
+- **Verifying the 1.20.1 client half (for the author):** `./gradlew :1.20.1:runClient` (run dir `run/1.20.1/client`;
+  first launch creates it), create a Continents of Time world or join a `:1.20.1:runServer` on 127.0.0.1:25599
+  (`--args="--quickPlayMultiplayer 127.0.0.1:25599"`), then `/cot seat moderner_beta:beta` — Beta grass/foliage
+  tints, the old sky colour and old fog on that continent, vanilla colours back on the modern one. The client log
+  should say "client climate installed for 6 of 26 eras".
 
-**Test recipe (headless):** `run/server/` holds `eula.txt` and `server.properties` (offline mode, port 25599,
-RCON on 25598 password `cottest`, view distance 6). It points at `level-name=atlas`,
-`level-type=continentsoftime:continents_of_time` (the multi-era world; the single-era world is still in
-`run/server/world`, switch `level-name`/`level-type` back to use it). `./gradlew runServer`, then drive it with
+**Test recipe (headless):** `run/<mc>/server/` (`run/26.2/server`, `run/1.20.1/server`) holds `eula.txt` and
+`server.properties` (offline mode, port 25599, RCON on 25598 password `cottest`, view distance 6). It points at
+`level-name=atlas`, `level-type=continentsoftime:continents_of_time` (the multi-era world; the 26.2 single-era
+world is still in `run/26.2/server/world`, switch `level-name`/`level-type` back to use it). Both versions use
+the same ports, so run one at a time. `./gradlew :<mc>:runServer`, then drive it with
 a ten-line RCON client (the protocol is trivial: auth packet type 3, command type 2). The most useful probe is
 a cross-section script: `forceload add x0 z x1 z` (one chunk row; the command refuses more than 256 chunks),
 wait until `execute if block` stops answering "not loaded", then per column scan `execute if block x y z
@@ -146,26 +177,35 @@ minecraft:air` downward for the top block, test `minecraft:water` for the water 
 x y z <id or #tag>` for the biome. Seat coordinates for a seed are in the server log's seat table and in the
 harness's "crossings" lines. The `run/` directory is gitignored; reuse the worlds there, but remember that
 previously generated chunks stay as they were — verify fixes on fresh chunks (delete the world if needed; it
-is ~10 MB).
+is ~10 MB). The 26.2 `atlas` world predates the Alpha-winter roster change, so its baked seat table differs from
+a fresh world's; the 1.20.1 `atlas` world is fresh (2026-08-30).
 
-**Climate harness:** `./gradlew climateTest` (`-Pseeds=...`) — the client's composite climate over a real layout
-with stub era samplers, plus the `atlas_info` payload codec round trip. ~2 s (it bootstraps vanilla's registries).
+**Harnesses** (each runs for both versions from the root; `:<mc>:` prefix for one): `./gradlew climateTest`
+(`-Pseeds=...`) — the client's composite climate over a real layout with stub era samplers, plus the `atlas_info`
+payload round trip (stream codec on 26.2, hand-written buffer on 1.20.1); ~2 s. `./gradlew layoutTest`
+(`-Pseeds=1,2,3`; ~18 s per seed per version) — assertions plus `build/layout/<seed>.png` (whole atlas, 32
+blocks/pixel) and `<seed>-home.png` (home continent, 8 blocks/pixel), written at the repository root.
+`./gradlew timelineTest` — era versions and the structure/cave-biome filters. All pass on both nodes (2026-08-30).
 
-**Layout harness:** `./gradlew layoutTest` (`-Pseeds=1,2,3` to choose seeds; ~16 s per seed) — assertions plus
-`build/layout/<seed>.png` (whole atlas, 32 blocks/pixel) and `<seed>-home.png` (home continent, 8 blocks/pixel).
+**Dev client:** `./gradlew :26.2:runClient` (run dir `run/26.2/client`, Fabric API and Moderner Beta already on
+the classpath; offline "Player###" account). `--args="--quickPlaySingleplayer single_era_beta"` opens straight
+into a copy of the verified beta world (`run/26.2/client/saves/single_era_beta`, copied from the server world, so
+recreate it from `run/26.2/server/world` if it is ever missing). Verified 2026-08-29: the client loads it and
+renders beta 1.7.3 terrain, and the author confirmed **Continents of Time appears in the Create World → World
+Type list** and works from there. `:1.20.1:runClient` is the same for 1.20.1 (not yet launched by anyone).
 
-**Dev client:** `./gradlew runClient` (run dir `run/client`, Fabric API and Moderner Beta already on the
-classpath; offline "Player###" account). `./gradlew runClient --args="--quickPlaySingleplayer single_era_beta"`
-opens straight into a copy of the verified beta world (`run/client/saves/single_era_beta`, copied from the
-server world, so recreate it from `run/server/world` if it is ever missing). Verified 2026-08-29: the client
-loads it and renders beta 1.7.3 terrain, and the author confirmed **Continents of Time appears in the Create
-World → World Type list** and works from there.
+## Next work, in order
 
-## Next work, in order (the author's pick, 2026-08-29)
+Nothing is queued: the 1.20.1 backport was the last item on the author's list (2026-08-29: the mod counts as
+complete; everything else stays parked "until a later date"). Two things wait on the author, not on a session:
 
-1. **1.20.1 backport** — the mod counts as complete now (author's call: everything else stays parked).
+1. **Look at the 1.20.1 client half in the dev client** (recipe above) — the only piece of the backport no one
+   has seen live. If tints/sky/fog are wrong there, the places to look are the four client mixins (their
+   `//? else` branches) and `ClientAtlas`.
+2. **Decide on a release**: the plan is GitHub releases only, one jar per version, once the author calls it done.
 
-Everything else stays parked "until a later date" (author, 2026-08-29).
+Built 2026-08-30 (session 5): **the 1.20.1 backport** — Stonecutter two-version build, verified on a 1.20.1 server
+(state section above); how the versions differ in the code is in ARCHITECTURE.md.
 
 Built 2026-08-30: **era-accurate cave biomes** (same `eraAccurate` flag; the author saw sulfur springs on Beta
 1.8.1 — Moderner Beta's presets inject vanilla's modern cave biomes under every era from Beta on; now trimmed per

@@ -15,7 +15,8 @@ and its old fog, where Moderner Beta has them). Nothing is playable in the inten
 
 ## Plans
 
-- A Fabric mod for **Minecraft 26.2** first; a **1.20.1** backport follows once the mod is complete.
+- A Fabric mod for **Minecraft 26.2 and 1.20.1**, built from one source tree (Stonecutter); each release ships one
+  jar per version. Requires Java 25 on 26.2 and Java 17+ on 1.20.1.
 - One master world type that partitions the world into era-continents and blends the seams beneath the oceans.
 - **Requires [Moderner Beta](https://modrinth.com/mod/moderner-beta)** (MIT), which provides every historical
   generator; this mod is the atlas around them and contains only its own code. Every world-generation type it

@@ -1,5 +1,6 @@
 package dev.continentsoftime.climate;
 
+import dev.continentsoftime.util.Compat;
 import dev.continentsoftime.atlas.layout.ContinentLayout;
 import dev.continentsoftime.atlas.layout.Footprint;
 import dev.continentsoftime.atlas.layout.Layout;
@@ -12,9 +13,13 @@ import mod.bluestaggo.modernerbeta.api.level.biome.climate.ClimateSamplerSky;
 import mod.bluestaggo.modernerbeta.api.level.biome.climate.Clime;
 import mod.bluestaggo.modernerbeta.settings.component.ClimateDistribution;
 import net.minecraft.SharedConstants;
-import net.minecraft.core.RegistryAccess;
 import net.minecraft.nbt.CompoundTag;
+//? if >=1.20.5 {
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.network.RegistryFriendlyByteBuf;
+//?} else {
+/*import net.minecraft.network.FriendlyByteBuf;
+*///?}
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.Bootstrap;
 
@@ -155,13 +160,20 @@ public final class ClimateHarness {
 		tag.putString("moderner_beta:provider", "moderner_beta:beta");
 		tag.putInt("answer", 42);
 		AtlasInfoPayload sent = new AtlasInfoPayload(20260829L, 10_000, 2_000, false, 20, List.of(
-			new AtlasInfoPayload.Era(Identifier.fromNamespaceAndPath("moderner_beta", "classic_0_30"), 256, 256, false, true, Optional.empty()),
-			new AtlasInfoPayload.Era(Identifier.fromNamespaceAndPath("moderner_beta", "beta"), 10_000, 10_000, true, false, Optional.of(tag)),
-			new AtlasInfoPayload.Era(Identifier.fromNamespaceAndPath("minecraft", "overworld"), 10_000, 10_000, true, false, Optional.empty())));
+			new AtlasInfoPayload.Era(Compat.id("moderner_beta", "classic_0_30"), 256, 256, false, true, Optional.empty()),
+			new AtlasInfoPayload.Era(Compat.id("moderner_beta", "beta"), 10_000, 10_000, true, false, Optional.of(tag)),
+			new AtlasInfoPayload.Era(Compat.id("minecraft", "overworld"), 10_000, 10_000, true, false, Optional.empty())));
+		//? if >=1.20.5 {
 		RegistryFriendlyByteBuf buf = new RegistryFriendlyByteBuf(Unpooled.buffer(), RegistryAccess.EMPTY);
 		AtlasInfoPayload.CODEC.encode(buf, sent);
 		int bytes = buf.readableBytes();
 		AtlasInfoPayload got = AtlasInfoPayload.CODEC.decode(buf);
+		//?} else {
+		/*FriendlyByteBuf buf = new FriendlyByteBuf(Unpooled.buffer());
+		sent.write(buf);
+		int bytes = buf.readableBytes();
+		AtlasInfoPayload got = AtlasInfoPayload.read(buf);
+		*///?}
 		check(got.equals(sent), "payload round trip (" + bytes + " bytes): " + got);
 		check(buf.readableBytes() == 0, "payload fully consumed");
 		check(got.eras().get(0).modernerBeta() && !got.eras().get(2).modernerBeta(), "modernerBeta flag per era");

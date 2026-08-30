@@ -7,6 +7,7 @@ import dev.continentsoftime.atlas.layout.Footprint;
 import dev.continentsoftime.atlas.layout.Layout;
 import dev.continentsoftime.atlas.layout.Seat;
 import dev.continentsoftime.network.AtlasInfoPayload;
+import dev.continentsoftime.util.Compat;
 import mod.bluestaggo.modernerbeta.api.level.biome.BiomeProvider;
 import mod.bluestaggo.modernerbeta.api.level.biome.climate.ClimateSampler;
 import mod.bluestaggo.modernerbeta.api.level.biome.climate.Clime;
@@ -17,11 +18,10 @@ import mod.bluestaggo.modernerbeta.settings.ModernBetaSettings;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.HolderGetter;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.biome.Biome;
-import org.jspecify.annotations.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -54,7 +54,6 @@ public final class ClientAtlas {
 			? Layout.single()
 			: new ContinentLayout(payload.seed(), footprints, payload.home(), payload.maxContinentSize(), payload.oceanWidth(), payload.oceans());
 
-		HolderGetter<Biome> biomes = level.registryAccess().lookupOrThrow(Registries.BIOME);
 		List<@Nullable ClimateSampler> samplers = new ArrayList<>(payload.eras().size());
 		List<Boolean> modernerBeta = new ArrayList<>(payload.eras().size());
 		for (int index = 0; index < payload.eras().size(); index++) {
@@ -81,8 +80,8 @@ public final class ClientAtlas {
 	                                                     net.minecraft.nbt.CompoundTag tag, Layout layout, int index) {
 		try {
 			ModernBetaSettings settings = ModernBetaSettings.fromCompound(level.registryAccess(), tag);
-			BiomeProvider provider = ModernBetaRegistries.BIOME.getValue(settings.getProvider())
-				.apply(settings, level.registryAccess().lookupOrThrow(Registries.BIOME), seed);
+			BiomeProvider provider = Compat.value(ModernBetaRegistries.BIOME, settings.getProvider())
+				.apply(settings, Compat.holders(level.registryAccess(), Registries.BIOME), seed);
 			provider.init();
 			if (era.anchored() && layout instanceof ContinentLayout continents && provider instanceof Translated translated) {
 				Seat seat = continents.seats().stream().filter(s -> s.era() == index).findFirst().orElseThrow();

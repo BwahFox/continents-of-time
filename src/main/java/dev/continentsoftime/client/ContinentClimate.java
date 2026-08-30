@@ -5,7 +5,7 @@ import mod.bluestaggo.modernerbeta.api.level.biome.climate.ClimateSampler;
 import mod.bluestaggo.modernerbeta.api.level.biome.climate.ClimateSamplerSky;
 import mod.bluestaggo.modernerbeta.api.level.biome.climate.Clime;
 import mod.bluestaggo.modernerbeta.settings.component.ClimateDistribution;
-import org.jspecify.annotations.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 

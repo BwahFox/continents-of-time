@@ -1,6 +1,6 @@
+//~ map_codec
 package dev.continentsoftime.atlas;
 
-import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import dev.continentsoftime.ContinentsOfTime;
 import dev.continentsoftime.atlas.layout.ContinentLayout;
@@ -18,7 +18,7 @@ import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.BiomeSource;
 import net.minecraft.world.level.biome.Biomes;
 import net.minecraft.world.level.biome.Climate;
-import org.jspecify.annotations.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.stream.Stream;
@@ -28,7 +28,7 @@ import java.util.stream.Stream;
  * biome query by asking the era that owns the column. The {@link AtlasChunkGenerator} is built around it.
  */
 public class AtlasBiomeSource extends BiomeSource {
-	public static final MapCodec<AtlasBiomeSource> CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
+	public static final com.mojang.serialization.MapCodec<AtlasBiomeSource> CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
 		AtlasSettings.CODEC.fieldOf("settings").forGetter(s -> s.settings),
 		RegistryOps.retrieveGetter(Registries.BIOME),
 		RegistryOps.retrieveGetter(ModernBetaResourceKeys.SETTINGS_PRESET),
@@ -172,7 +172,7 @@ public class AtlasBiomeSource extends BiomeSource {
 	}
 
 	@Override
-	protected MapCodec<? extends BiomeSource> codec() {
+	protected com.mojang.serialization.MapCodec<? extends BiomeSource> codec() {
 		return CODEC;
 	}
 

@@ -1,7 +1,7 @@
 {
 	"required": true,
 	"package": "dev.continentsoftime.mixin",
-	"compatibilityLevel": "JAVA_25",
+	"compatibilityLevel": "JAVA_${java_version}",
 	"mixins": [
 		"BiomeProviderFractalMixin",
 		"BiomeProviderMixin",
@@ -14,8 +14,8 @@
 		"PlayerListMixin"
 	],
 	"client": [
-		"client.AtmosphericFogEnvironmentMixin",
-		"client.EnvironmentAttributeSystemMixin",
+		"client.ContinentFogMixin",
+		"client.ContinentSkyMixin",
 		"client.FoliageTintSourceMixin",
 		"client.GrassBlockTintSourceMixin"
 	],

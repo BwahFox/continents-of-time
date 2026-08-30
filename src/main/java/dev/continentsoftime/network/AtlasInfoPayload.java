@@ -10,10 +10,14 @@ import dev.continentsoftime.atlas.layout.Footprint;
 import mod.bluestaggo.modernerbeta.api.level.biome.climate.ClimateSampler;
 import mod.bluestaggo.modernerbeta.level.biome.ModernBetaBiomeSource;
 import net.minecraft.nbt.CompoundTag;
+//? if >=1.20.5 {
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+//?} else {
+/*import net.minecraft.network.FriendlyByteBuf;
+*///?}
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 
@@ -30,12 +34,18 @@ import java.util.Optional;
  * that the client registered the channel), so the server never depends on it.
  *
  * <p>Moderner Beta does the same for its own worlds with one provider; this is the same idea for a roster.
+ *
+ * <p>Wire format: a typed payload with a stream codec from 1.20.5 on; before that, a plain channel message
+ * written and read by hand ({@link #write} / {@link #read}) — the same fields in the same order.
  */
 public record AtlasInfoPayload(long seed, int maxContinentSize, int oceanWidth, boolean oceans, int home, List<Era> eras)
-	implements CustomPacketPayload {
+	//? if >=1.20.5
+	implements CustomPacketPayload
+{
 
 	/** One era as the layout and the client's climate need it. {@code climateSettings} is present only for climate-sampling eras. */
 	public record Era(Identifier id, int width, int length, boolean shaped, boolean anchored, Optional<CompoundTag> climateSettings) {
+		//? if >=1.20.5 {
 		static final StreamCodec<RegistryFriendlyByteBuf, Era> CODEC = StreamCodec.composite(
 			Identifier.STREAM_CODEC, Era::id,
 			ByteBufCodecs.VAR_INT, Era::width,
@@ -44,6 +54,21 @@ public record AtlasInfoPayload(long seed, int maxContinentSize, int oceanWidth, 
 			ByteBufCodecs.BOOL, Era::anchored,
 			ByteBufCodecs.COMPOUND_TAG.apply(ByteBufCodecs::optional), Era::climateSettings,
 			Era::new);
+		//?} else {
+		/*static Era read(FriendlyByteBuf buf) {
+			return new Era(buf.readIdentifier(), buf.readVarInt(), buf.readVarInt(), buf.readBoolean(), buf.readBoolean(),
+				buf.readOptional(FriendlyByteBuf::readNbt));
+		}
+
+		void write(FriendlyByteBuf buf) {
+			buf.writeIdentifier(id);
+			buf.writeVarInt(width);
+			buf.writeVarInt(length);
+			buf.writeBoolean(shaped);
+			buf.writeBoolean(anchored);
+			buf.writeOptional(climateSettings, FriendlyByteBuf::writeNbt);
+		}
+		*///?}
 
 		public Footprint footprint() {
 			return new Footprint(width, length, shaped, anchored);
@@ -55,7 +80,11 @@ public record AtlasInfoPayload(long seed, int maxContinentSize, int oceanWidth, 
 		}
 	}
 
-	public static final Type<AtlasInfoPayload> TYPE = new Type<>(ContinentsOfTime.id("atlas_info"));
+	/** The channel: {@code continentsoftime:atlas_info}. */
+	public static final Identifier ID = ContinentsOfTime.id("atlas_info");
+
+	//? if >=1.20.5 {
+	public static final Type<AtlasInfoPayload> TYPE = new Type<>(ID);
 	public static final StreamCodec<RegistryFriendlyByteBuf, AtlasInfoPayload> CODEC = StreamCodec.composite(
 		ByteBufCodecs.LONG, AtlasInfoPayload::seed,
 		ByteBufCodecs.VAR_INT, AtlasInfoPayload::maxContinentSize,
@@ -64,6 +93,26 @@ public record AtlasInfoPayload(long seed, int maxContinentSize, int oceanWidth, 
 		ByteBufCodecs.VAR_INT, AtlasInfoPayload::home,
 		Era.CODEC.apply(ByteBufCodecs.list()), AtlasInfoPayload::eras,
 		AtlasInfoPayload::new);
+
+	@Override
+	public Type<? extends CustomPacketPayload> type() {
+		return TYPE;
+	}
+	//?} else {
+	/*public static AtlasInfoPayload read(FriendlyByteBuf buf) {
+		return new AtlasInfoPayload(buf.readLong(), buf.readVarInt(), buf.readVarInt(), buf.readBoolean(), buf.readVarInt(),
+			buf.readList(Era::read));
+	}
+
+	public void write(FriendlyByteBuf buf) {
+		buf.writeLong(seed);
+		buf.writeVarInt(maxContinentSize);
+		buf.writeVarInt(oceanWidth);
+		buf.writeBoolean(oceans);
+		buf.writeVarInt(home);
+		buf.writeCollection(eras, (b, era) -> era.write(b));
+	}
+	*///?}
 
 	/** "This level is not an atlas." */
 	public static final AtlasInfoPayload NONE = new AtlasInfoPayload(0, 0, 0, true, 0, List.of());
@@ -90,10 +139,5 @@ public record AtlasInfoPayload(long seed, int maxContinentSize, int oceanWidth, 
 			eras.add(new Era(era.id(), footprint.width(), footprint.length(), footprint.shaped(), footprint.anchored(), climate));
 		}
 		return new AtlasInfoPayload(level.getSeed(), settings.maxContinentSize(), settings.oceanWidth(), settings.oceans(), atlas.homeEra(), eras);
-	}
-
-	@Override
-	public Type<? extends CustomPacketPayload> type() {
-		return TYPE;
 	}
 }

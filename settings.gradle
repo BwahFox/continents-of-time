@@ -4,8 +4,33 @@ pluginManagement {
 			name = 'Fabric'
 			url = 'https://maven.fabricmc.net/'
 		}
+		maven {
+			name = 'KikuGie'
+			url = 'https://maven.kikugie.dev/releases'
+		}
+		maven {
+			name = 'KikuGie snapshots'
+			url = 'https://maven.kikugie.dev/snapshots'
+		}
 		mavenCentral()
 		gradlePluginPortal()
+	}
+}
+
+// Stonecutter builds the one source tree in src/ once per Minecraft version (a "node" per versions/<mc>/), with
+// //? comment conditions and string replacements bridging the API differences. The source as committed is in
+// its 26.2 form (the VCS version); `./gradlew "Reset active project"` restores it after switching.
+plugins {
+	id('dev.kikugie.stonecutter').version '0.9.7'
+}
+
+stonecutter {
+	kotlinController = false
+	centralScript = 'build.gradle'
+
+	create(getRootProject()) {
+		versions '1.20.1', '26.2'
+		vcsVersion = '26.2'
 	}
 }
 

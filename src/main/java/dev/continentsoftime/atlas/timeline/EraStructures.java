@@ -1,5 +1,6 @@
 package dev.continentsoftime.atlas.timeline;
 
+import dev.continentsoftime.util.Compat;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.HolderSet;
@@ -43,7 +44,7 @@ public final class EraStructures {
 	);
 
 	private static Map.Entry<Identifier, EraVersion> vanilla(String set, EraVersion introduced) {
-		return Map.entry(Identifier.withDefaultNamespace(set), introduced);
+		return Map.entry(Compat.vanillaId(set), introduced);
 	}
 
 	private EraStructures() {}

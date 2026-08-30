@@ -32,7 +32,15 @@ public abstract class ChunkProviderNoiseMixin {
 		return border.modifyDensity(density, x - continentsoftime$dx(), z - continentsoftime$dz());
 	}
 
-	@Redirect(method = "lambda$getBaseBlockSource$0", at = @At(value = "INVOKE", target = "Lmod/bluestaggo/modernerbeta/settings/component/WorldBorderLocation;containsPoint(II)Z"))
+	// The block-source lambda's synthetic name depends on the compiler that built Moderner Beta for the version
+	// (per-method numbering on 26.2, class-wide on 1.20.1); checked against each release jar.
+	//? if >=26.1 {
+	private static final String BASE_BLOCK_SOURCE_LAMBDA = "lambda$getBaseBlockSource$0";
+	//?} else {
+	/*private static final String BASE_BLOCK_SOURCE_LAMBDA = "lambda$getBaseBlockSource$3";
+	*///?}
+
+	@Redirect(method = BASE_BLOCK_SOURCE_LAMBDA, at = @At(value = "INVOKE", target = "Lmod/bluestaggo/modernerbeta/settings/component/WorldBorderLocation;containsPoint(II)Z"))
 	private boolean continentsoftime$blockSourceContains(WorldBorderLocation border, int x, int z) {
 		return border.containsPoint(x - continentsoftime$dx(), z - continentsoftime$dz());
 	}

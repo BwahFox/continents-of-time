@@ -1,5 +1,6 @@
 package dev.continentsoftime.atlas;
 
+import dev.continentsoftime.util.Compat;
 import net.minecraft.resources.Identifier;
 
 import java.util.List;
@@ -9,10 +10,10 @@ public final class Eras {
 	private Eras() {}
 
 	/** The modern (1.18+) generator, i.e. vanilla's {@code minecraft:overworld} noise settings. */
-	public static final Identifier MODERN = Identifier.withDefaultNamespace("overworld");
+	public static final Identifier MODERN = Compat.vanillaId("overworld");
 
 	private static Identifier mb(String preset) {
-		return Identifier.fromNamespaceAndPath("moderner_beta", preset);
+		return Compat.id("moderner_beta", preset);
 	}
 
 	/**

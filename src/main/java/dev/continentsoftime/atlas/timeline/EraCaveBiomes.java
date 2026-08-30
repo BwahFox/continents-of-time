@@ -1,5 +1,6 @@
 package dev.continentsoftime.atlas.timeline;
 
+import dev.continentsoftime.util.Compat;
 import mod.bluestaggo.modernerbeta.settings.ModernBetaSettings;
 import mod.bluestaggo.modernerbeta.settings.SettingsComponentTypes;
 import mod.bluestaggo.modernerbeta.settings.component.CaveBiomeVoronoi;
@@ -19,10 +20,10 @@ import java.util.Optional;
  */
 public final class EraCaveBiomes {
 	private static final Map<Identifier, EraVersion> INTRODUCED = Map.of(
-		Identifier.withDefaultNamespace("dripstone_caves"), EraVersion.release(18, 0),
-		Identifier.withDefaultNamespace("lush_caves"), EraVersion.release(18, 0),
-		Identifier.withDefaultNamespace("deep_dark"), EraVersion.release(19, 0),
-		Identifier.withDefaultNamespace("sulfur_caves"), new EraVersion(EraVersion.RELEASE, 26, 2, 0)
+		Compat.vanillaId("dripstone_caves"), EraVersion.release(18, 0),
+		Compat.vanillaId("lush_caves"), EraVersion.release(18, 0),
+		Compat.vanillaId("deep_dark"), EraVersion.release(19, 0),
+		Compat.vanillaId("sulfur_caves"), new EraVersion(EraVersion.RELEASE, 26, 2, 0)
 	);
 
 	private EraCaveBiomes() {}

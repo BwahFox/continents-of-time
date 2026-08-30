@@ -1,16 +1,17 @@
 package dev.continentsoftime;
 
+import dev.continentsoftime.util.Compat;
 import dev.continentsoftime.atlas.AtlasBiomeSource;
 import dev.continentsoftime.atlas.AtlasChunkGenerator;
 import dev.continentsoftime.command.CotCommand;
 import dev.continentsoftime.config.ContinentsConfig;
-import dev.continentsoftime.network.AtlasInfoPayload;
+import dev.continentsoftime.network.AtlasChannel;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
-import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.dimension.LevelStem;
@@ -23,7 +24,7 @@ public final class ContinentsOfTime implements ModInitializer {
 	public static final Logger LOGGER = LoggerFactory.getLogger("ContinentsOfTime");
 
 	public static Identifier id(String path) {
-		return Identifier.fromNamespaceAndPath(MOD_ID, path);
+		return Compat.id(MOD_ID, path);
 	}
 
 	@Override
@@ -33,7 +34,7 @@ public final class ContinentsOfTime implements ModInitializer {
 		ServerLifecycleEvents.SERVER_STARTING.register(ContinentsOfTime::initWorlds);
 		CotCommand.register();
 		// The atlas description a modded client can ask for; vanilla clients never register the channel and get nothing.
-		PayloadTypeRegistry.clientboundPlay().register(AtlasInfoPayload.TYPE, AtlasInfoPayload.CODEC);
+		AtlasChannel.register();
 
 		ContinentsConfig config = ContinentsConfig.get();
 		LOGGER.info("Continents of Time: {} eras in the roster, continents up to {} blocks, oceans at least {} blocks",
@@ -41,8 +42,8 @@ public final class ContinentsOfTime implements ModInitializer {
 	}
 
 	private static void initWorlds(MinecraftServer server) {
-		long seed = server.getWorldGenSettings().options().seed();
-		Registry<LevelStem> stems = server.registries().compositeAccess().lookupOrThrow(Registries.LEVEL_STEM);
+		long seed = Compat.seed(server);
+		Registry<LevelStem> stems = Compat.registry(Compat.registries(server), Registries.LEVEL_STEM);
 		stems.entrySet().forEach(entry -> {
 			if (entry.getValue().generator() instanceof AtlasChunkGenerator atlas) {
 				atlas.init(seed);

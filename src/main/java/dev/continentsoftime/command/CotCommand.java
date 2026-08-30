@@ -5,6 +5,7 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import dev.continentsoftime.atlas.AtlasChunkGenerator;
 import dev.continentsoftime.atlas.HostedEra;
 import dev.continentsoftime.atlas.timeline.EraVersion;
+import dev.continentsoftime.util.Compat;
 import java.util.List;
 import java.util.stream.Collectors;
 import dev.continentsoftime.atlas.layout.ContinentLayout;
@@ -21,7 +22,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.Vec3;
-import org.jspecify.annotations.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * {@code /cot} — looking around the atlas without a map:
@@ -42,7 +43,7 @@ public final class CotCommand {
 
 	private static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
 		dispatcher.register(Commands.literal("cot")
-			.requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
+			.requires(Compat.gamemasters())
 			.then(Commands.literal("seats").executes(context -> seats(context.getSource())))
 			.then(Commands.literal("where").executes(context -> where(context.getSource())))
 			.then(Commands.literal("structures")

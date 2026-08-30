@@ -1,5 +1,6 @@
 package dev.continentsoftime.timeline;
 
+import dev.continentsoftime.util.Compat;
 import dev.continentsoftime.atlas.Eras;
 import dev.continentsoftime.atlas.timeline.EraCaveBiomes;
 import dev.continentsoftime.atlas.timeline.EraStructures;
@@ -81,8 +82,8 @@ public final class TimelineHarness {
 		allowed("moderner_beta:skylands", "minecraft:villages", false);
 		allowed("moderner_beta:classic_0_30", "moderner_beta:ocean_shrine", true);
 		allowed("moderner_beta:alpha", "somemod:castles", true);
-		check(EraStructures.introduced(Identifier.parse("minecraft:villages")).isPresent(), "villages have a known introduction");
-		check(EraStructures.introduced(Identifier.parse("somemod:castles")).isEmpty(), "unknown sets have none");
+		check(EraStructures.introduced(Compat.parseId("minecraft:villages")).isPresent(), "villages have a known introduction");
+		check(EraStructures.introduced(Compat.parseId("somemod:castles")).isEmpty(), "unknown sets have none");
 
 		System.out.println("==== cave biomes");
 		cave("moderner_beta:beta_1_8_1", "minecraft:lush_caves", false);
@@ -93,7 +94,7 @@ public final class TimelineHarness {
 		cave("minecraft:overworld", "minecraft:sulfur_caves", true);
 		cave("minecraft:overworld", "minecraft:deep_dark", true);
 		cave("moderner_beta:beta", "somemod:crystal_caves", true);
-		check(EraCaveBiomes.introduced(Identifier.parse("minecraft:sulfur_caves")).get().isBefore(EraVersion.MODERN), "sulfur caves are dated before modern");
+		check(EraCaveBiomes.introduced(Compat.parseId("minecraft:sulfur_caves")).get().isBefore(EraVersion.MODERN), "sulfur caves are dated before modern");
 
 		if (failures > 0) {
 			System.out.println("FAILED: " + failures + " check(s)");
@@ -103,17 +104,17 @@ public final class TimelineHarness {
 	}
 
 	private static void expect(String era, String version) {
-		String got = EraVersion.of(Identifier.parse(era)).toString();
+		String got = EraVersion.of(Compat.parseId(era)).toString();
 		check(got.equals(version), era + " -> " + got + (got.equals(version) ? "" : " (expected " + version + ")"));
 	}
 
 	private static void allowed(String era, String set, boolean expected) {
-		boolean got = EraStructures.allows(EraVersion.of(Identifier.parse(era)), Identifier.parse(set));
+		boolean got = EraStructures.allows(EraVersion.of(Compat.parseId(era)), Compat.parseId(set));
 		check(got == expected, set + " on " + era + ": " + (got ? "allowed" : "off") + (got == expected ? "" : " (expected " + (expected ? "allowed" : "off") + ")"));
 	}
 
 	private static void cave(String era, String biome, boolean expected) {
-		boolean got = EraCaveBiomes.allows(EraVersion.of(Identifier.parse(era)), Identifier.parse(biome));
+		boolean got = EraCaveBiomes.allows(EraVersion.of(Compat.parseId(era)), Compat.parseId(biome));
 		check(got == expected, biome + " under " + era + ": " + (got ? "allowed" : "off") + (got == expected ? "" : " (expected " + (expected ? "allowed" : "off") + ")"));
 	}
 

@@ -27,3 +27,8 @@ private/
 
 # Vanilla log written by the climate harness (it bootstraps the game registries in the project dir)
 /logs/
+
+# Stonecutter nodes: only their gradle.properties is tracked
+versions/*/build/
+versions/*/.gradle/
+versions/*/run/
