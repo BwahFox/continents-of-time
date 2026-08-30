@@ -146,13 +146,19 @@ server world, so recreate it from `run/server/world` if it is ever missing). Ver
 loads it and renders beta 1.7.3 terrain, and the author confirmed **Continents of Time appears in the Create
 World → World Type list** and works from there.
 
-## Next work, in order
+## Next work, in order (the author's pick, 2026-08-29)
 
-1. **Nothing in flight.** The in-game pass over the "things to look at" list is closed: the author looked at the
-   coasts, the seats and the visuals in the dev client (2026-08-29) — "everything looks fine, we're never going to
-   be able to make it perfectly smooth". Re-open only for something specific the author reports. The candidates
-   for what comes next are the Parked list below (author picks) and the backport.
-2. **1.20.1 backport** — after the mod is complete (author's call).
+1. **Era-accurate caves — verify, no code expected.** Carvers are routed to the hosted era's generator; confirm on
+   a beta and an infdev continent (author looks in the dev client; agent confirms from Moderner Beta's carver
+   selection) and close the item.
+2. **"No oceans" option** — a config switch that skips ocean generation and leaves continents butting against
+   each other at chunk seams (the hard modern→Infdev 420 seam the author liked: "i like this"). Baked into the
+   world like the other settings.
+3. **Era-accurate structures, optional** — structures that did not exist in an era's version do not generate on
+   its continent: filter structure sets per era behind a config flag (the atlas owns structure placement state).
+4. **1.20.1 backport** — after 1–3; the mod counts as complete then.
+
+Everything else stays parked "until a later date" (author, 2026-08-29).
 
 ## Parked (the author's own calls, 2026-08-29 — do not pull forward)
 
@@ -164,14 +170,5 @@ World → World Type list** and works from there.
 - A config **screen** (the file exists; a GUI does not) — after the oceans work.
 - **Coast biome transition** (author, 2026-08-29): once the ocean and the era biomes are settled, add a
   transition between them instead of the hard ocean-stops-here line. After the oceans work.
-- **"No oceans" option** (author, 2026-08-29, on seeing the hard seam between modern and Infdev 420 terrain in
-  the dev client: "i like this"): a config switch that skips ocean generation and leaves continents butting
-  against each other at chunk seams. Base functions first; revisit after.
 - **Far Lands** (author, 2026-08-29: "not quite sure how I want to handle" them). Moderner Beta has a per-preset
   toggle; at ±12.5M blocks they lie far outside every seat, so the layout forecloses nothing. Undecided.
-- **Era-accurate structures, optional** (author, 2026-08-29): structures that did not exist in an era's version
-  should not generate on its continent. Feasible: the atlas owns structure placement state, so it can filter
-  structure sets per era behind a config flag. After the oceans work.
-- **Era-accurate caves, optional** (author, 2026-08-29). Probably already true: `applyCarvers` is routed to the
-  hosted era's generator and Moderner Beta ships each era's own carvers — verify on a beta and an infdev
-  continent before writing any code.
