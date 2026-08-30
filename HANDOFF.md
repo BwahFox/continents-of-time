@@ -63,8 +63,8 @@ finite eras (Classic, Indev) are small islands, since that is what those worlds 
 
 ## State as of 2026-08-30 (session 6, later): 1.0.2 — C2ME's aquifer optimisation vs the Bedrock RNG
 
-**1.0.2 (built and verified, NOT yet released — release text needs the author's word; the draft is in the
-session notes):** the author's full-radius pregen with C2ME reached the Bedrock 1.17 continent and every chunk
+**1.0.2 released 2026-08-30** (https://github.com/BwahFox/continents-of-time/releases/tag/v1.0.2, both jars,
+text approved by the author): the author's full-radius pregen with C2ME reached the Bedrock 1.17 continent and every chunk
 of the three Bedrock-RNG eras failed ("IllegalArgumentException at RandomUtils.getRandom"): C2ME's
 `optimizeAquifer` (default on) recognises only vanilla's two positional random factories, and those eras fork
 their aquifer random from Moderner Beta's `BedrockRandomSource`. Fixed by `mixin.AquiferSamplerProviderMixin`
