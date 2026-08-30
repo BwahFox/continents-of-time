@@ -56,12 +56,12 @@ tasks.register("climateTest", JavaExec) {
 	}
 }
 
-// Structures harness: the era/version timeline and which vanilla structure sets each era allows.
-tasks.register("structuresTest", JavaExec) {
+// Timeline harness: era versions, and which vanilla structure sets and cave biomes each era allows.
+tasks.register("timelineTest", JavaExec) {
 	group = "verification"
 	description = "Checks era versions and the era-accurate structure filter headlessly."
 	classpath = sourceSets.test.runtimeClasspath
-	mainClass = "dev.continentsoftime.structure.EraStructuresHarness"
+	mainClass = "dev.continentsoftime.timeline.TimelineHarness"
 	workingDir = projectDir
 }
 

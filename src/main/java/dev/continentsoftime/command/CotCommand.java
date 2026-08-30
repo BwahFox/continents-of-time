@@ -4,7 +4,7 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import dev.continentsoftime.atlas.AtlasChunkGenerator;
 import dev.continentsoftime.atlas.HostedEra;
-import dev.continentsoftime.atlas.structure.EraVersion;
+import dev.continentsoftime.atlas.timeline.EraVersion;
 import java.util.List;
 import java.util.stream.Collectors;
 import dev.continentsoftime.atlas.layout.ContinentLayout;
@@ -29,7 +29,7 @@ import org.jspecify.annotations.Nullable;
  *   <li>{@code /cot seats} lists every era's seat (box and centre) in this world;</li>
  *   <li>{@code /cot where} says which era owns the chunk you are in, the coast field there, and the nearest continent;</li>
  *   <li>{@code /cot seat <era>} puts you on top of that era's continent at its centre (generating the chunk if needed);</li>
- *   <li>{@code /cot structures <era>} lists the structure sets that can generate on that era's continent (and its version).</li>
+ *   <li>{@code /cot structures <era>} lists the structure sets and cave biomes that can generate on that era's continent (and its version).</li>
  * </ul>
  * Operator level 2, like {@code /tp}.
  */
@@ -127,9 +127,10 @@ public final class CotCommand {
 		}
 		HostedEra era = atlas.atlas().eras().get(index);
 		List<String> sets = atlas.structureSetsFor(era);
-		String accuracy = atlas.atlas().settings().eraAccurateStructures() ? "era-accurate" : "all versions";
-		source.sendSuccess(() -> Component.literal(String.format("%s (%s, %s): %d structure set(s): %s", eraId,
-			EraVersion.of(eraId), accuracy, sets.size(), sets.stream().sorted().collect(Collectors.joining(", ")))), false);
+		String accuracy = atlas.atlas().settings().eraAccurate() ? "era-accurate" : "all versions";
+		source.sendSuccess(() -> Component.literal(String.format("%s (%s, %s): %d structure set(s): %s; cave biomes: %s", eraId,
+			EraVersion.of(eraId), accuracy, sets.size(), sets.stream().sorted().collect(Collectors.joining(", ")),
+			era.caveBiomes().isEmpty() ? "none" : String.join(", ", era.caveBiomes()))), false);
 		return sets.size();
 	}
 

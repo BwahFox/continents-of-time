@@ -1,4 +1,4 @@
-package dev.continentsoftime.atlas.structure;
+package dev.continentsoftime.atlas.timeline;
 
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;

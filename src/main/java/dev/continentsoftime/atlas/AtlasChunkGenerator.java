@@ -37,8 +37,8 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.chunk.ChunkGeneratorStructureState;
-import dev.continentsoftime.atlas.structure.EraStructures;
-import dev.continentsoftime.atlas.structure.EraVersion;
+import dev.continentsoftime.atlas.timeline.EraStructures;
+import dev.continentsoftime.atlas.timeline.EraVersion;
 import java.util.concurrent.ConcurrentHashMap;
 import net.minecraft.world.level.levelgen.blending.Blender;
 import org.jspecify.annotations.Nullable;
@@ -134,7 +134,7 @@ public class AtlasChunkGenerator extends NoiseBasedChunkGenerator {
 		return eraStructureStates.computeIfAbsent(key, k -> {
 			HostedEra era = owner == null ? atlas.oceanEra() : owner;
 			HolderLookup<StructureSet> sets = java.util.Objects.requireNonNull(structureSets, "structure state requested before createState");
-			if (atlas.settings().eraAccurateStructures()) {
+			if (atlas.settings().eraAccurate()) {
 				sets = EraStructures.filtered(sets, EraVersion.of(era.id()));
 			}
 			return era.generator().createState(sets, structureRandomState, structureSeed);

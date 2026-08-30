@@ -31,7 +31,7 @@ Minecraft-API-touching code in few, obvious places so that job stays small.
   people who play Alpha".
 - **Continent size is configurable, default 10,000 × 10,000 blocks, as a maximum.** Continents are shaped by
   noise to look like coastlines, so they are usually smaller than the box; they are never larger than it.
-  (`config/continentsoftime.json`: `maxContinentSize`, `oceanWidth`, `eras`, `oceans`, `eraAccurateStructures`.)
+  (`config/continentsoftime.json`: `maxContinentSize`, `oceanWidth`, `eras`, `oceans`, `eraAccurate`.)
 - **"No oceans" option** (author, 2026-08-29, built 2026-08-30): `oceans: false` in the config (`"oceans": false`
   in a world preset's settings) keeps the same seats but generates no open water — every column between
   continents belongs to the nearest era, whose own terrain fills the gap up to a hard seam at a chunk boundary
@@ -165,13 +165,18 @@ World → World Type list** and works from there.
 
 Everything else stays parked "until a later date" (author, 2026-08-29).
 
-Built 2026-08-30: **era-accurate structures** (`eraAccurateStructures`, default on, baked as
-`era_accurate_structures`): each chunk's structure placement uses a state built by its era's own generator (so
+Built 2026-08-30: **era-accurate cave biomes** (same `eraAccurate` flag; the author saw sulfur springs on Beta
+1.8.1 — Moderner Beta's presets inject vanilla's modern cave biomes under every era from Beta on; now trimmed per
+era at build time through Moderner Beta's settings API: lush/dripstone 1.18, deep dark 1.19, sulfur caves 26.2;
+`/cot structures <era>` lists what remains; `./gradlew timelineTest`).
+
+Built 2026-08-30: **era-accurate structures** (`eraAccurate`, default on, baked as
+`era_accurate`): each chunk's structure placement uses a state built by its era's own generator (so
 Moderner Beta's per-preset overrides — ocean shrine, Legacy Console strongholds — still apply) over the structure
 sets that existed in the era's version (`atlas.structure.EraVersion`/`EraStructures`; vanilla sets dated, unknown
 sets allowed everywhere; non-Java eras mapped: PE→1.4, Bedrock by number, Legacy Console→1.13, Skylands→Beta
 1.7.3). `/cot structures <era>` lists what an era can place. Caveat: `/locate` uses the level's union state, so
-it can point to a spot on an old continent where the filter then places nothing. `./gradlew structuresTest`.
+it can point to a spot on an old continent where the filter then places nothing. `./gradlew timelineTest`.
 
 Built 2026-08-30: the **"no oceans" option** (verified on a scratch server: gap columns owned by the nearest era,
 field 1.0, no atlas ocean) and the **infinite atlas** (harness-verified, and probed live on the seed-20260829 server: (100000, 100000) has a

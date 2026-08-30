@@ -74,10 +74,10 @@ public class AtlasBiomeSource extends BiomeSource {
 
 	public AtlasBiomeSource(AtlasSettings settings, HostedEra.Registries26 registries) {
 		this.settings = settings;
-		this.eras = settings.eras().stream().map(id -> HostedEra.create(id, registries)).toList();
+		this.eras = settings.eras().stream().map(id -> HostedEra.create(id, registries, settings.eraAccurate())).toList();
 		this.oceanBiomes = OceanBiomes.from(registries);
 		HostedEra modern = modernEra();
-		this.oceanEra = modern != null ? modern : HostedEra.create(Eras.MODERN, registries);
+		this.oceanEra = modern != null ? modern : HostedEra.create(Eras.MODERN, registries, settings.eraAccurate());
 		this.layout = Layout.single();
 	}
 

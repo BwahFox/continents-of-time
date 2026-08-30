@@ -6,7 +6,11 @@ import mod.bluestaggo.modernerbeta.api.level.chunk.ChunkProviderFinite;
 import mod.bluestaggo.modernerbeta.api.level.chunk.surface.SurfaceConfig;
 import mod.bluestaggo.modernerbeta.level.biome.ModernBetaBiomeSource;
 import mod.bluestaggo.modernerbeta.level.chunk.ModernBetaChunkGenerator;
+import mod.bluestaggo.modernerbeta.settings.ModernBetaSettings;
 import mod.bluestaggo.modernerbeta.settings.ModernBetaSettingsPreset;
+import dev.continentsoftime.atlas.timeline.EraCaveBiomes;
+import dev.continentsoftime.atlas.timeline.EraVersion;
+import java.util.List;
 import net.minecraft.core.HolderGetter;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
@@ -29,7 +33,7 @@ import net.minecraft.world.level.levelgen.NoiseGeneratorSettings;
  * <p>Moderner Beta eras are a {@link ModernBetaChunkGenerator} over one of its settings presets; the modern era is
  * vanilla's own noise generator.
  */
-public record HostedEra(Identifier id, ChunkGenerator generator, BiomeSource biomeSource) {
+public record HostedEra(Identifier id, ChunkGenerator generator, BiomeSource biomeSource, List<String> caveBiomes) {
 
 	/** Registries the atlas needs to build hosted eras; supplied by the biome source's codec. */
 	public record Registries26(
@@ -41,23 +45,33 @@ public record HostedEra(Identifier id, ChunkGenerator generator, BiomeSource bio
 		RegistryOps.RegistryInfoLookup lookup
 	) {}
 
-	public static HostedEra create(Identifier era, Registries26 registries) {
+	/**
+	 * @param eraAccurate whether to keep underground biomes newer than the era out of its continent (see
+	 *                    {@link EraCaveBiomes}); structures are filtered per chunk by the generator instead
+	 */
+	public static HostedEra create(Identifier era, Registries26 registries, boolean eraAccurate) {
 		if (Eras.isVanilla(era)) {
 			BiomeSource biomeSource = MultiNoiseBiomeSource.createFromPreset(
 				registries.parameterLists().getOrThrow(MultiNoiseBiomeSourceParameterLists.OVERWORLD));
 			ChunkGenerator generator = new NoiseBasedChunkGenerator(biomeSource,
 				registries.noiseSettings().getOrThrow(ResourceKey.create(Registries.NOISE_SETTINGS, era)));
-			return new HostedEra(era, generator, biomeSource);
+			return new HostedEra(era, generator, biomeSource, List.of("(vanilla: all)"));
 		}
 
 		// A preset reference: Moderner Beta resolves the preset's three settings groups lazily, by id, through its
 		// preset registry, the same way its own world screen does.
 		ModernBetaSettingsPreset reference = ModernBetaSettingsPreset.referenced(era, registries.lookup());
+		ModernBetaSettings caveSettings = reference.caveBiomeSettings();
+		ModernBetaSettings resolvedCaves = caveSettings.mapPreset(registries.presets(), ModernBetaSettingsPreset::caveBiomeSettings);
+		if (eraAccurate) {
+			caveSettings = EraCaveBiomes.filter(caveSettings, resolvedCaves, EraVersion.of(era));
+			resolvedCaves = caveSettings.mapPreset(registries.presets(), ModernBetaSettingsPreset::caveBiomeSettings);
+		}
 		ModernBetaBiomeSource biomeSource = new ModernBetaBiomeSource(
-			registries.biomes(), registries.presets(), reference.biomeSettings(), reference.caveBiomeSettings());
+			registries.biomes(), registries.presets(), reference.biomeSettings(), caveSettings);
 		ModernBetaChunkGenerator generator = new ModernBetaChunkGenerator(
 			biomeSource, registries.presets(), registries.surfaceConfigs(), reference.chunkSettings());
-		return new HostedEra(era, generator, biomeSource);
+		return new HostedEra(era, generator, biomeSource, EraCaveBiomes.biomesIn(resolvedCaves));
 	}
 
 	/** Moderner Beta creates its providers at server start (it hooks the server for its own generators); we do the same for ours. */

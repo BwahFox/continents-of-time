@@ -88,9 +88,9 @@ Facts that shaped the design:
 - `atlas.HostedEra` — builds an era's generator + biome source from an id: `minecraft:*` ids are vanilla
   noise-settings presets over the overworld multi-noise biome source; anything else is a Moderner Beta settings
   preset.
-- `atlas.structure.EraVersion` / `EraStructures` — where an era sits on the timeline and which vanilla structure sets
-  existed then (see "Era-accurate structures").
-- `atlas.AtlasSettings` — the roster, `max_continent_size`, `ocean_width`, `oceans`, `era_accurate_structures`; fields missing from a world preset's
+- `atlas.timeline.EraVersion` / `EraStructures` / `EraCaveBiomes` — where an era sits on the timeline and which
+  vanilla structure sets and cave biomes existed then (see "Era-accurate structures and cave biomes").
+- `atlas.AtlasSettings` — the roster, `max_continent_size`, `ocean_width`, `oceans`, `era_accurate`; fields missing from a world preset's
   JSON default to the config file at creation time and are then stored explicitly in level.dat.
 - `atlas.Eras` — the default roster (26 eras).
 - `atlas.layout.Layout` — `eraAt(blockX, blockZ)` (an era index or `OCEAN`), `nearestEraAt`, and `chunkOwner`:
@@ -241,7 +241,7 @@ no positional hook short of two more mixins); **precipitation and snow/ice by sa
 every climate era does). Debug text: Moderner Beta's F3 entries read its own level state, so they stay silent on an
 atlas; `/cot where` is the atlas's own.
 
-## Era-accurate structures (built 2026-08-30, optional, default on)
+## Era-accurate structures and cave biomes (built 2026-08-30, optional, default on)
 
 Vanilla places structures from a `ChunkGeneratorStructureState`: the level makes one from its generator's
 `createState(structureSets, randomState, seed)` — the sets whose structures can occur in the biome source's
@@ -256,7 +256,15 @@ to the Java versions with the same structures; the vanilla era and unknown ids a
 version that introduced it. Unknown sets (other mods', Moderner Beta's own) are allowed everywhere. Ocean chunks
 use the ocean era's state. The level's own state stays the union, which is what `/locate` reads — so `/locate` can
 name a place on an old continent where nothing is then placed; accepted. `/cot structures <era>` shows an era's
-live sets; `./gradlew structuresTest` checks the timeline and the filter headlessly.
+live sets; `./gradlew timelineTest` checks the timeline and the filters headlessly.
+
+**Cave biomes.** Moderner Beta's presets from Beta on inject vanilla's modern underground biomes (lush and
+dripstone caves 1.18, the deep dark 1.19, sulfur caves 26.2) through a voronoi map in the preset's cave-biome
+settings; the author saw sulfur springs on a Beta 1.8.1 continent. With `era_accurate`, `HostedEra.create` reads
+the preset's resolved voronoi map, drops the points whose biome is newer than the era (`EraCaveBiomes`), and
+overlays the trimmed map on the preset reference the biome source is built from (or switches the era to
+Moderner Beta's "no cave biomes" provider when no biome survives) — through Moderner Beta's public settings API,
+no mixin. `/cot structures <era>` also lists the era's remaining cave biomes.
 
 ## Not yet built
 

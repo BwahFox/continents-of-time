@@ -1,18 +1,19 @@
-package dev.continentsoftime.structure;
+package dev.continentsoftime.timeline;
 
 import dev.continentsoftime.atlas.Eras;
-import dev.continentsoftime.atlas.structure.EraStructures;
-import dev.continentsoftime.atlas.structure.EraVersion;
+import dev.continentsoftime.atlas.timeline.EraCaveBiomes;
+import dev.continentsoftime.atlas.timeline.EraStructures;
+import dev.continentsoftime.atlas.timeline.EraVersion;
 import net.minecraft.resources.Identifier;
 
 import java.util.List;
 
 /**
- * Headless check of the era/structure timeline: {@code ./gradlew structuresTest}. Every default-roster era parses
+ * Headless check of the era timeline: {@code ./gradlew timelineTest}. Every default-roster era parses
  * to the expected version and the versions are ordered like the roster (the Java line of it); representative
  * structure sets are allowed exactly from the version that introduced them; unknown sets are allowed everywhere.
  */
-public final class EraStructuresHarness {
+public final class TimelineHarness {
 	private static int failures;
 
 	public static void main(String[] args) {
@@ -83,11 +84,22 @@ public final class EraStructuresHarness {
 		check(EraStructures.introduced(Identifier.parse("minecraft:villages")).isPresent(), "villages have a known introduction");
 		check(EraStructures.introduced(Identifier.parse("somemod:castles")).isEmpty(), "unknown sets have none");
 
+		System.out.println("==== cave biomes");
+		cave("moderner_beta:beta_1_8_1", "minecraft:lush_caves", false);
+		cave("moderner_beta:release_1_17_1", "minecraft:dripstone_caves", false);
+		cave("moderner_beta:release_1_17_1", "minecraft:deep_dark", false);
+		cave("moderner_beta:bedrock_1_17", "minecraft:lush_caves", false);
+		cave("moderner_beta:legacy_console_large", "minecraft:lush_caves", false);
+		cave("minecraft:overworld", "minecraft:sulfur_caves", true);
+		cave("minecraft:overworld", "minecraft:deep_dark", true);
+		cave("moderner_beta:beta", "somemod:crystal_caves", true);
+		check(EraCaveBiomes.introduced(Identifier.parse("minecraft:sulfur_caves")).get().isBefore(EraVersion.MODERN), "sulfur caves are dated before modern");
+
 		if (failures > 0) {
 			System.out.println("FAILED: " + failures + " check(s)");
 			System.exit(1);
 		}
-		System.out.println("Structures harness: all checks passed");
+		System.out.println("Timeline harness: all checks passed");
 	}
 
 	private static void expect(String era, String version) {
@@ -98,6 +110,11 @@ public final class EraStructuresHarness {
 	private static void allowed(String era, String set, boolean expected) {
 		boolean got = EraStructures.allows(EraVersion.of(Identifier.parse(era)), Identifier.parse(set));
 		check(got == expected, set + " on " + era + ": " + (got ? "allowed" : "off") + (got == expected ? "" : " (expected " + (expected ? "allowed" : "off") + ")"));
+	}
+
+	private static void cave(String era, String biome, boolean expected) {
+		boolean got = EraCaveBiomes.allows(EraVersion.of(Identifier.parse(era)), Identifier.parse(biome));
+		check(got == expected, biome + " under " + era + ": " + (got ? "allowed" : "off") + (got == expected ? "" : " (expected " + (expected ? "allowed" : "off") + ")"));
 	}
 
 	private static void check(boolean condition, String what) {
