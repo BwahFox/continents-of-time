@@ -36,6 +36,10 @@ Minecraft-API-touching code in few, obvious places so that job stays small.
 **The fantasy (author, 2026-08-29): sailing between continents is time travel.** The roster is the timeline; the
 layout seats eras in roster order outward from the modern home, so reordering the config roster reorders time.
 
+**Vanilla clients can join a server running the mod** (author found this 2026-08-29): all generation is
+server-side and the biomes are data-driven and synced at login. **Keep it that way** — client-side work
+(per-continent visuals, a config screen) must be optional; the server must never require the mod on the client.
+
 **Confirmed by the author 2026-08-29:** the runtime dependency on Moderner Beta, and the defaults below.
 **Players always spawn in the modern era** — the modern continent holds the origin; **oceans are at least 2,000 blocks**
 wide; the Legacy Console seat uses the *large* preset; Skylands is seated (floating islands over open ocean);
@@ -120,7 +124,8 @@ World → World Type list** and works from there.
 
 1. **Per-continent visuals** — Moderner Beta's old fog/sky/grass colouring is a per-level flag that the atlas
    turns off everywhere; a composite climate sampler would bring it back per continent. Study pass first: how
-   Moderner Beta flags a level as "modded" and where its climate sampler is consulted client-side.
+   Moderner Beta flags a level as "modded" and where its climate sampler is consulted client-side. Client-only
+   and optional: a vanilla client must still be able to join (see the spec).
 2. **A pass over the "things to look at in-game" list above** as the author reports them — coast-band shape,
    Legacy Console's ocean-biome land patches, finite-level surfaces, carvers over the seabed.
 3. **1.20.1 backport** — after the mod is complete (author's call).
