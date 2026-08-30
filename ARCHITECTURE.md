@@ -57,6 +57,12 @@ Facts that shaped the design:
   `NoiseBasedChunkGenerator`, else from a dummy. Hosted eras receive it. The modern era needs the real overworld
   one; Moderner Beta eras use its surface system (default block stone, sea level 63; their own presets say 64 —
   a one-block mismatch inside vanilla's surface rules only, accepted for now).
+- **The feature sorter refuses the union.** `ChunkGenerator` lazily feature-sorts its biome source's biomes
+  (`featuresPerStep`); vanilla forces that sort in `validate()` when a client re-opens a world. Over every era's
+  biomes it fails with a "feature order cycle" (vanilla's `desert` and Moderner Beta's `beta_desert` order shared
+  features differently). The atlas never decorates from its own sort — each chunk is decorated by its owning era's
+  generator, ocean chunks by the modern era's (or an unseated modern generator when the roster has none) — and
+  `validate()` validates the hosted generators instead. Found 2026-08-29 on the first re-open of a world.
 - **`getOrCreateNoiseChunk` caches per chunk.** Whoever creates a chunk's `NoiseChunk` first wins, and Moderner
   Beta creates its own subclass. So every step for a chunk must go to the same hosted generator, including
   `createBiomes` — the atlas never creates a noise chunk of its own.

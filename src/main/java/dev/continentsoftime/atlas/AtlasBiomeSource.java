@@ -42,6 +42,8 @@ public class AtlasBiomeSource extends BiomeSource {
 	private final AtlasSettings settings;
 	private final List<HostedEra> eras;
 	private final OceanBiomes oceanBiomes;
+	/** Decorates ocean chunks: the roster's modern era, or an unseated modern generator if the roster has none. */
+	private final HostedEra oceanEra;
 	private Layout layout;
 
 	/** The modern ocean, picked by temperature like the overworld does, and deep or shallow by the coast field. */
@@ -74,6 +76,8 @@ public class AtlasBiomeSource extends BiomeSource {
 		this.settings = settings;
 		this.eras = settings.eras().stream().map(id -> HostedEra.create(id, registries)).toList();
 		this.oceanBiomes = OceanBiomes.from(registries);
+		HostedEra modern = modernEra();
+		this.oceanEra = modern != null ? modern : HostedEra.create(Eras.MODERN, registries);
 		this.layout = Layout.single();
 	}
 
@@ -113,6 +117,16 @@ public class AtlasBiomeSource extends BiomeSource {
 	public @Nullable HostedEra modernEra() {
 		int index = settings.eras().indexOf(Eras.MODERN);
 		return index < 0 ? null : eras.get(index);
+	}
+
+	/**
+	 * The generator that decorates ocean chunks (kelp, seagrass, ores: the modern ocean's features): the roster's
+	 * modern era, or a modern generator of the atlas's own when the roster has none. Never the atlas itself — its
+	 * biome source lists every era's biomes, and vanilla's feature sorter refuses that union (eras order the same
+	 * features differently), so the atlas must never sort features over it.
+	 */
+	public HostedEra oceanEra() {
+		return oceanEra;
 	}
 
 	/** The era whose continent holds the origin: the modern generator if it is on the roster, else the first era. */

@@ -163,16 +163,22 @@ public class AtlasChunkGenerator extends NoiseBasedChunkGenerator {
 	@Override
 	public void applyBiomeDecoration(WorldGenLevel level, ChunkAccess chunk, StructureManager structureManager) {
 		HostedEra owner = owner(chunk);
-		if (owner == null) {
-			HostedEra modern = atlas.modernEra();
-			if (modern != null) {
-				modern.generator().applyBiomeDecoration(level, chunk, structureManager); // kelp, seagrass, ores: the modern ocean's features
-			} else {
-				super.applyBiomeDecoration(level, chunk, structureManager);
-			}
-			return;
+		HostedEra decorator = owner != null ? owner : atlas.oceanEra();
+		decorator.generator().applyBiomeDecoration(level, chunk, structureManager);
+	}
+
+	/**
+	 * Vanilla validates a generator when a client re-opens a world by forcing its feature sort over its biome
+	 * source's biomes. The atlas's biomes are every era's, and eras order the same features differently, so that
+	 * sort fails ("feature order cycle") — and it is never used: every chunk is decorated by one hosted generator.
+	 * Validate those instead, each over its own consistent biome set.
+	 */
+	@Override
+	public void validate() {
+		for (HostedEra era : atlas.eras()) {
+			era.generator().validate();
 		}
-		owner.generator().applyBiomeDecoration(level, chunk, structureManager);
+		atlas.oceanEra().generator().validate();
 	}
 
 	@Override

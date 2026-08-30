@@ -110,6 +110,11 @@ finite eras (Classic, Indev) are small islands, since that is what those worlds 
   tag) failed (26.2 keeps world-gen settings in `<save>/data/minecraft/world_gen_settings.dat`, and even with it
   the save was corrupt); use a properly created world instead. Two bugs the failed runs still caught and fixed:
   the payload type was not registered, then registered twice.
+- **Re-opening a world from the client failed (found and fixed in session 4):** vanilla's `validate()` on
+  re-open feature-sorts the atlas's union of all eras' biomes and hits a "feature order cycle" (desert vs
+  beta_desert); creating a world skips that path, which is why it had never shown. The atlas now validates its
+  hosted generators instead and never sorts the union (ARCHITECTURE "as seen from outside"). The author saw it
+  as "safe mode got enabled / my test world corrupted" — that dialog is the generic load failure; read the log.
 - **Lesson from this session:** chunks generated in an earlier run stay on disk — the chunk pyramid pre-generates
   a radius around every loaded chunk — so a fix can look intermittent when re-probed on a used world. Verify
   on fresh chunks or a fresh world.
