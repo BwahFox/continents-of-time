@@ -74,8 +74,9 @@ finite eras (Classic, Indev) are small islands, since that is what those worlds 
   z -9440..-9184) — its level's terrain (y 62..77) and its own biome across the box, modern ocean around it;
   Legacy Console seat — forest/plains land inside its box, ocean outside; Skylands seat — lifted 64 blocks after
   the author saw the islands half-drowned in the dev client ("more like islands"): full-column dumps show
-  bedrock/stone seabed to ~y 18, water to 63, air, islands at y 86..137. No generation exceptions. The author
-  looked at the rest in the dev client: "everything seems to be working".
+  bedrock/stone seabed to ~y 18, water to 63, air, islands at y 86..137; the author then confirmed the lifted
+  Skylands in the dev client ("works"). No generation exceptions. The author looked at the rest in the dev
+  client too: "everything seems to be working".
 - **Things to look at in-game (not verified visually yet):** the coast band's shape (era terrain higher than
   the shoreline is cut along a quadratic rise; era terrain lower — an era's own sea at the layout coast — is
   filled up to a sandbar at the shoreline); Legacy Console shows ocean-biome patches on land inside its box
