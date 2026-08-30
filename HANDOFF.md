@@ -33,8 +33,8 @@ Minecraft-API-touching code in few, obvious places so that job stays small.
 - Config values are baked into a world when it is created (level.dat stores them); editing the config later
   only affects new worlds.
 
-**Defaults the agent chose, pending the author's word** (change them in `Eras`/`ContinentsConfig` if not):
-the **modern era is the home continent** (origin and spawn are on it); **oceans are at least 2,000 blocks**
+**Confirmed by the author 2026-08-29:** the runtime dependency on Moderner Beta, and the defaults below.
+**Players always spawn in the modern era** — the modern continent holds the origin; **oceans are at least 2,000 blocks**
 wide; the Legacy Console seat uses the *large* preset; Skylands is seated (floating islands over open ocean);
 finite eras (Classic, Indev) are small islands, since that is what those worlds were.
 
