@@ -18,3 +18,6 @@ bin/
 # OS
 .DS_Store
 Thumbs.db
+
+# project-private state: its own repo, private remotes only
+private/
