@@ -61,7 +61,14 @@ server-side and the biomes are data-driven and synced at login. **Keep it that w
 wide; the Legacy Console seat uses the *large* preset; Skylands is seated (floating islands over open ocean);
 finite eras (Classic, Indev) are small islands, since that is what those worlds were.
 
-## State as of 2026-08-30 (end of session 5)
+## State as of 2026-08-30 (end of session 5): 1.0.0 prepared
+
+**Release 1.0.0 is staged (2026-08-30):** version bumped, both jars built clean with every harness passing, tag
+`v1.0.0` pushed to both remotes, and a **draft** GitHub release with both jars attached and CHANGELOG's notes.
+Two clicks remain, both the author's: make the repository public (GitHub → Settings → Danger zone, or
+`gh repo edit BwahFox/continents-of-time --visibility public --accept-visibility-change-consequences`) and
+publish the draft (`gh release edit v1.0.0 --draft=false`). Player-facing documentation is README.md
+(requirements per version, playing, options, multiplayer, known limitations) and CHANGELOG.md.
 
 **Everything on the list is built. The layout, the oceans/seams, spawn, `/cot`, the optional client half, Alpha
 winter mode, the re-open fix, the "no oceans" option, the infinite atlas, era-accurate structures and cave biomes
@@ -217,8 +224,11 @@ other mods installed (again this is for a modpack)"):
    unknown set by the vanilla structure tags its structures carry (`#minecraft:village`, `mineshaft`,
    `shipwreck`, `ocean_ruin`, `ruined_portal`, `eye_of_ender_located` exist on both versions) plus a config map
    for the rest — an hour's work in `EraStructures.filtered`, with a harness check on the config path.
-2. **First release** — GitHub releases only (never Modrinth), one jar per version from `./gradlew build`, with
-   the README's AI disclosure; the author decides the version number and when.
+2. **First release — prepared as 1.0.0 (see the top of the State section):** the author publishes the draft and
+   makes the repo public when ready. Later releases: bump `mod_version` in `gradle.properties`, add a CHANGELOG
+   entry, `./gradlew clean build layoutTest climateTest timelineTest`, tag `v<version>`, push both remotes,
+   `gh release create v<version> versions/*/build/libs/continentsoftime-<version>+*.jar --notes-file <notes>`.
+   GitHub releases only, never Modrinth.
 
 Built 2026-08-30 (session 5): **the 1.20.1 backport** — Stonecutter two-version build, verified on a 1.20.1 server
 (state section above); how the versions differ in the code is in ARCHITECTURE.md. Then **the Customize screen**
