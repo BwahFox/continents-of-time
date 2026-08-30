@@ -52,7 +52,7 @@ public final class ClientAtlas {
 		// Mirrors AtlasBiomeSource.init: one era is everywhere; more are laid out from the seed.
 		Layout layout = footprints.size() == 1
 			? Layout.single()
-			: new ContinentLayout(payload.seed(), footprints, payload.home(), payload.maxContinentSize(), payload.oceanWidth());
+			: new ContinentLayout(payload.seed(), footprints, payload.home(), payload.maxContinentSize(), payload.oceanWidth(), payload.oceans());
 
 		HolderGetter<Biome> biomes = level.registryAccess().lookupOrThrow(Registries.BIOME);
 		List<@Nullable ClimateSampler> samplers = new ArrayList<>(payload.eras().size());

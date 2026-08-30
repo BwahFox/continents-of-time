@@ -31,7 +31,7 @@ import java.util.Optional;
  *
  * <p>Moderner Beta does the same for its own worlds with one provider; this is the same idea for a roster.
  */
-public record AtlasInfoPayload(long seed, int maxContinentSize, int oceanWidth, int home, List<Era> eras)
+public record AtlasInfoPayload(long seed, int maxContinentSize, int oceanWidth, boolean oceans, int home, List<Era> eras)
 	implements CustomPacketPayload {
 
 	/** One era as the layout and the client's climate need it. {@code climateSettings} is present only for climate-sampling eras. */
@@ -60,12 +60,13 @@ public record AtlasInfoPayload(long seed, int maxContinentSize, int oceanWidth, 
 		ByteBufCodecs.LONG, AtlasInfoPayload::seed,
 		ByteBufCodecs.VAR_INT, AtlasInfoPayload::maxContinentSize,
 		ByteBufCodecs.VAR_INT, AtlasInfoPayload::oceanWidth,
+		ByteBufCodecs.BOOL, AtlasInfoPayload::oceans,
 		ByteBufCodecs.VAR_INT, AtlasInfoPayload::home,
 		Era.CODEC.apply(ByteBufCodecs.list()), AtlasInfoPayload::eras,
 		AtlasInfoPayload::new);
 
 	/** "This level is not an atlas." */
-	public static final AtlasInfoPayload NONE = new AtlasInfoPayload(0, 0, 0, 0, List.of());
+	public static final AtlasInfoPayload NONE = new AtlasInfoPayload(0, 0, 0, true, 0, List.of());
 
 	public boolean isAtlas() {
 		return !eras.isEmpty();
@@ -88,7 +89,7 @@ public record AtlasInfoPayload(long seed, int maxContinentSize, int oceanWidth, 
 			}
 			eras.add(new Era(era.id(), footprint.width(), footprint.length(), footprint.shaped(), footprint.anchored(), climate));
 		}
-		return new AtlasInfoPayload(level.getSeed(), settings.maxContinentSize(), settings.oceanWidth(), atlas.homeEra(), eras);
+		return new AtlasInfoPayload(level.getSeed(), settings.maxContinentSize(), settings.oceanWidth(), settings.oceans(), atlas.homeEra(), eras);
 	}
 
 	@Override

@@ -154,7 +154,7 @@ public final class ClimateHarness {
 		CompoundTag tag = new CompoundTag();
 		tag.putString("moderner_beta:provider", "moderner_beta:beta");
 		tag.putInt("answer", 42);
-		AtlasInfoPayload sent = new AtlasInfoPayload(20260829L, 10_000, 2_000, 20, List.of(
+		AtlasInfoPayload sent = new AtlasInfoPayload(20260829L, 10_000, 2_000, false, 20, List.of(
 			new AtlasInfoPayload.Era(Identifier.fromNamespaceAndPath("moderner_beta", "classic_0_30"), 256, 256, false, true, Optional.empty()),
 			new AtlasInfoPayload.Era(Identifier.fromNamespaceAndPath("moderner_beta", "beta"), 10_000, 10_000, true, false, Optional.of(tag)),
 			new AtlasInfoPayload.Era(Identifier.fromNamespaceAndPath("minecraft", "overworld"), 10_000, 10_000, true, false, Optional.empty())));
@@ -167,6 +167,7 @@ public final class ClimateHarness {
 		check(got.eras().get(0).modernerBeta() && !got.eras().get(2).modernerBeta(), "modernerBeta flag per era");
 		check(got.eras().get(0).footprint().equals(Footprint.finite(256, 256)), "footprint reconstructed");
 		check(!AtlasInfoPayload.NONE.isAtlas() && got.isAtlas(), "NONE is not an atlas");
+		check(!got.oceans() && AtlasInfoPayload.NONE.oceans(), "oceans flag carried");
 	}
 
 	private static List<Footprint> footprints() {

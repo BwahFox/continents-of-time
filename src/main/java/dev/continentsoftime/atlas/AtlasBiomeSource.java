@@ -101,7 +101,7 @@ public class AtlasBiomeSource extends BiomeSource {
 			return;
 		}
 		List<Footprint> footprints = eras.stream().map(era -> era.footprint(settings.maxContinentSize())).toList();
-		ContinentLayout continents = new ContinentLayout(seed, footprints, homeEra(), settings.maxContinentSize(), settings.oceanWidth());
+		ContinentLayout continents = new ContinentLayout(seed, footprints, homeEra(), settings.maxContinentSize(), settings.oceanWidth(), settings.oceans());
 		ContinentsOfTime.LOGGER.info("Continents of Time layout: {}", continents.describe());
 		for (var seat : continents.seats()) {
 			ContinentsOfTime.LOGGER.info("  {} in x {}..{}, z {}..{}{}", eras.get(seat.era()).id(),

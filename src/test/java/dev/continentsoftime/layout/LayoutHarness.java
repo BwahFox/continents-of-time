@@ -60,6 +60,7 @@ public final class LayoutHarness {
 			checkEveryEraPresent(layout, extents);
 			timeColumns(layout);
 			checkSeabed(seed, layout);
+			checkNoOceans(seed, layout);
 			printCrossings(layout);
 			render(layout, out.resolve(seed + ".png"));
 			renderZoom(layout, out.resolve(seed + "-home.png"));
@@ -267,6 +268,43 @@ public final class LayoutHarness {
 	 * away from the coast; the band's bounds bracket each other, meet the seabed at the shoreline, and open to the
 	 * whole world inland; ocean chunks and era chunks therefore agree wherever they meet.
 	 */
+	/**
+	 * The "no oceans" option: same seats, but every gap column belongs to the nearest era, nothing is open water,
+	 * the field reads inland everywhere, and chunk owners agree with the columns under them.
+	 */
+	private static void checkNoOceans(long seed, ContinentLayout layout) {
+		ContinentLayout landlocked = new ContinentLayout(seed, footprints(), HOME, MAX_SIZE, OCEAN, false);
+		check(!landlocked.oceans() && layout.oceans(), "oceans flag reported");
+		check(landlocked.seats().equals(layout.seats()), "no-oceans layout seats every era identically");
+		int water = 0, disagree = 0, fieldNotInland = 0, changedLand = 0, samples = 0;
+		for (int x = -60_000; x <= 60_000; x += 1_777) {
+			for (int z = -60_000; z <= 60_000; z += 1_333) {
+				samples++;
+				int era = landlocked.eraAt(x, z);
+				int withOceans = layout.eraAt(x, z);
+				if (era == Layout.OCEAN) {
+					water++;
+				}
+				if (withOceans != Layout.OCEAN && era != withOceans) {
+					changedLand++;
+				}
+				if (withOceans == Layout.OCEAN && era != layout.nearestEraAt(x, z)) {
+					disagree++;
+				}
+				if (landlocked.fieldAt(x, z) != 1) {
+					fieldNotInland++;
+				}
+				if (landlocked.chunkOwner(x >> 4, z >> 4) != landlocked.eraAt((x >> 4) << 4, (z >> 4) << 4)) {
+					disagree++;
+				}
+			}
+		}
+		check(water == 0, water + " open-water column(s) with oceans off (" + samples + " samples)");
+		check(changedLand == 0, changedLand + " land column(s) changed era with oceans off");
+		check(disagree == 0, disagree + " gap column(s) not routed to the nearest era / owner mismatch");
+		check(fieldNotInland == 0, fieldNotInland + " column(s) not read as inland with oceans off");
+	}
+
 	private static void checkSeabed(long seed, ContinentLayout layout) {
 		Seabed seabed = new Seabed(seed, 63, -64, 319);
 		Seat home = layout.seatOf(HOME);

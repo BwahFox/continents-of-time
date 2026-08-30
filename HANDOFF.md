@@ -31,7 +31,12 @@ Minecraft-API-touching code in few, obvious places so that job stays small.
   people who play Alpha".
 - **Continent size is configurable, default 10,000 × 10,000 blocks, as a maximum.** Continents are shaped by
   noise to look like coastlines, so they are usually smaller than the box; they are never larger than it.
-  (`config/continentsoftime.json`: `maxContinentSize`, `oceanWidth`, `eras`.)
+  (`config/continentsoftime.json`: `maxContinentSize`, `oceanWidth`, `eras`, `oceans`.)
+- **"No oceans" option** (author, 2026-08-29, built 2026-08-30): `oceans: false` in the config (`"oceans": false`
+  in a world preset's settings) keeps the same seats but generates no open water — every column between
+  continents belongs to the nearest era, whose own terrain fills the gap up to a hard seam at a chunk boundary
+  with its neighbour's (the modern→Infdev 420 seam the author liked). No seabed, no coast band; `oceanWidth` is
+  then just spacing. Baked into the world like the rest.
 - Config values are baked into a world when it is created (level.dat stores them); editing the config later
   only affects new worlds.
 
@@ -148,17 +153,19 @@ World → World Type list** and works from there.
 
 ## Next work, in order (the author's pick, 2026-08-29)
 
-1. **Era-accurate caves — verify, no code expected.** Carvers are routed to the hosted era's generator; confirm on
-   a beta and an infdev continent (author looks in the dev client; agent confirms from Moderner Beta's carver
-   selection) and close the item.
-2. **"No oceans" option** — a config switch that skips ocean generation and leaves continents butting against
+1. **"No oceans" option** — a config switch that skips ocean generation and leaves continents butting against
    each other at chunk seams (the hard modern→Infdev 420 seam the author liked: "i like this"). Baked into the
    world like the other settings.
-3. **Era-accurate structures, optional** — structures that did not exist in an era's version do not generate on
+2. **Era-accurate structures, optional** — structures that did not exist in an era's version do not generate on
    its continent: filter structure sets per era behind a config flag (the atlas owns structure placement state).
-4. **1.20.1 backport** — after 1–3; the mod counts as complete then.
+3. **1.20.1 backport** — after 1–2; the mod counts as complete then.
 
 Everything else stays parked "until a later date" (author, 2026-08-29).
+
+Closed 2026-08-29 without code: **era-accurate caves** are already true by construction — `applyCarvers` goes to
+the owning era's generator, and Moderner Beta's generator applies each preset's own cave rules there (its Beta cave
+and canyon carvers swapped in where the preset forces them, no carving at all where the preset says so — Infdev
+420 has none, as in that version — and noise caves off in old presets).
 
 ## Parked (the author's own calls, 2026-08-29 — do not pull forward)
 

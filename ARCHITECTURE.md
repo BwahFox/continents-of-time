@@ -88,7 +88,7 @@ Facts that shaped the design:
 - `atlas.HostedEra` — builds an era's generator + biome source from an id: `minecraft:*` ids are vanilla
   noise-settings presets over the overworld multi-noise biome source; anything else is a Moderner Beta settings
   preset.
-- `atlas.AtlasSettings` — the roster, `max_continent_size`, `ocean_width`; fields missing from a world preset's
+- `atlas.AtlasSettings` — the roster, `max_continent_size`, `ocean_width`, `oceans`; fields missing from a world preset's
   JSON default to the config file at creation time and are then stored explicitly in level.dat.
 - `atlas.Eras` — the default roster (26 eras).
 - `atlas.layout.Layout` — `eraAt(blockX, blockZ)` (an era index or `OCEAN`), `nearestEraAt`, and `chunkOwner`:
@@ -127,6 +127,14 @@ islands. Constants are named at the top of `ContinentLayout` with the reasoning 
 
 **Cost.** ~0.14 µs per column uncached (`eraAtColumn`); generation goes through a per-chunk 16×16 cache
 (`eraAt`). `fieldAt` exposes the signed field (positive inland, negative at sea) for the ocean/seam work.
+
+**No oceans (option, built 2026-08-30).** `ContinentLayout(..., oceans = false)` seats everything identically but,
+when it fills the per-chunk cache, hands every gap column to `nearestEraAt` and reports the field as `1` (inland)
+everywhere. Nothing downstream changes: no column is sea, so the atlas never generates an ocean chunk or clamps a
+coast, and each era's infinite terrain simply runs on to the seam where the nearest-era decision flips — a hard
+chunk-boundary seam, which is the look the author asked for. Finite levels keep their box (and are never "nearest",
+as before); the gap around them goes to the nearest shaped era. Stored in `AtlasSettings.oceans`, sent to modded
+clients in the atlas payload so their climate routing matches.
 
 **Harness.** `./gradlew layoutTest [-Pseeds=a,b]` builds the default roster's layout for several seeds without
 Minecraft and asserts determinism, every era present, origin + a 512-block disc on home, land inside every box

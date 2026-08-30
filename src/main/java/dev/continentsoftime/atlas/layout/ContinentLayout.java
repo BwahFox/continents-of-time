@@ -79,6 +79,7 @@ public final class ContinentLayout implements Layout {
 	private final int pitch;
 	private final int regionHalf;
 	private final int home;
+	private final boolean oceans;
 	private final List<Seat> seats;
 	private final Seat[] byEra;
 	private final Map<Long, Seat> byCell = new HashMap<>();
@@ -96,6 +97,16 @@ public final class ContinentLayout implements Layout {
 	 * @param oceanWidth       minimum open water between two continents, in blocks
 	 */
 	public ContinentLayout(long seed, List<Footprint> footprints, int home, int maxContinentSize, int oceanWidth) {
+		this(seed, footprints, home, maxContinentSize, oceanWidth, true);
+	}
+
+	/**
+	 * @param oceans {@code false} for the "no oceans" option: the shaped continents are seated exactly as with
+	 *               oceans, but no column is open water — every column outside a continent belongs to the nearest
+	 *               era, whose own terrain then fills the gap up to a hard seam with its neighbour's; the coast
+	 *               field reads as inland everywhere (no seabed, no coast band). Sizes keep their meaning as spacing.
+	 */
+	public ContinentLayout(long seed, List<Footprint> footprints, int home, int maxContinentSize, int oceanWidth, boolean oceans) {
 		if (footprints.isEmpty()) {
 			throw new IllegalArgumentException("No eras to lay out");
 		}
@@ -114,6 +125,7 @@ public final class ContinentLayout implements Layout {
 		this.pitch = maxContinentSize + oceanWidth;
 		this.regionHalf = maxContinentSize / 2;
 		this.home = home;
+		this.oceans = oceans;
 
 		SplittableRandom random = new SplittableRandom(seed);
 		List<long[]> cells = growCells(random, footprints.size());
@@ -293,6 +305,9 @@ public final class ContinentLayout implements Layout {
 	 */
 	@Override
 	public double fieldAt(int x, int z) {
+		if (!oceans) {
+			return 1;
+		}
 		Seat seat = seatContaining(x, z);
 		if (seat == null) {
 			return -1;
@@ -321,7 +336,8 @@ public final class ContinentLayout implements Layout {
 
 	/**
 	 * {@link #eraAt} without the per-chunk cache: one column's answer at one column's cost. For sparse sampling
-	 * (maps, harnesses); generation goes through the cache.
+	 * (maps, harnesses); generation goes through the cache. Always the with-oceans answer ({@link #OCEAN} in the
+	 * gaps): the "no oceans" option is applied when the cache is filled.
 	 */
 	public int eraAtColumn(int x, int z) {
 		Seat seat = seatContaining(x, z);
@@ -352,7 +368,11 @@ public final class ContinentLayout implements Layout {
 			int baseZ = chunkZ << 4;
 			for (int dx = 0; dx < 16; dx++) {
 				for (int dz = 0; dz < 16; dz++) {
-					chunk[(dx << 4) | dz] = (byte) eraAtColumn(baseX + dx, baseZ + dz);
+					int era = eraAtColumn(baseX + dx, baseZ + dz);
+					if (era == OCEAN && !oceans) {
+						era = nearestEraAt(baseX + dx, baseZ + dz);
+					}
+					chunk[(dx << 4) | dz] = (byte) era;
 				}
 			}
 			chunkCache.put(key, chunk);
@@ -402,6 +422,8 @@ public final class ContinentLayout implements Layout {
 	public int oceanWidth() { return oceanWidth; }
 	public int pitch() { return pitch; }
 	public int home() { return home; }
+	/** Whether the gaps between continents are open water ({@code true}) or the nearest era's own terrain. */
+	public boolean oceans() { return oceans; }
 	/** Seats in growth order; the first is home. */
 	public List<Seat> seats() { return List.copyOf(seats); }
 	public Seat seatOf(int era) { return byEra[era]; }
@@ -416,7 +438,7 @@ public final class ContinentLayout implements Layout {
 			maxCellZ = Math.max(maxCellZ, seat.cellZ());
 		}
 		return seats.size() + " continent(s) on a hex grid with pitch " + pitch + " (max size " + maxSize
-			+ ", ocean " + oceanWidth + "), cells x " + minCellX + ".." + maxCellX + ", z " + minCellZ + ".." + maxCellZ
+			+ ", ocean " + oceanWidth + (oceans ? "" : ", NO OCEANS: gaps go to the nearest era") + "), cells x " + minCellX + ".." + maxCellX + ", z " + minCellZ + ".." + maxCellZ
 			+ ", home era " + home + " at the origin";
 	}
 }

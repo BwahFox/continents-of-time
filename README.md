@@ -20,6 +20,7 @@ and its old fog, where Moderner Beta has them). Nothing is playable in the inten
 - **Requires [Moderner Beta](https://modrinth.com/mod/moderner-beta)** (MIT), which provides every historical
   generator; this mod is the atlas around them and contains only its own code. Every world-generation type it
   offers gets a continent, plus the game's modern generator.
+- Optional "no oceans" mode: no open water at all, continents meet at hard seams (`"oceans": false`).
 - Continent size is configurable (`config/continentsoftime.json`; default up to 10,000 × 10,000 blocks —
   continents are coastline-shaped and usually smaller).
 - Part of a larger modpack built around **VirtualMinecraft**, a computers mod by the same author.
