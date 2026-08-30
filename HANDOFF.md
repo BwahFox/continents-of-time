@@ -300,7 +300,8 @@ and canyon carvers swapped in where the preset forces them, no carving at all wh
 
 - **A second, separate mod: a dimension for every generation type** (author, 2026-08-30, idea): for players
   who want full accuracy rather than one stitched world — each era is its own dimension, so each keeps its own
-  sea level, world height and sky with no seams or coast clamping at all. The parked VirtualMinecraft
+  sea level, world height and sky with no seams or coast clamping at all. **Standalone by design** — it must
+  work on its own with no other mod from the pack; when the pack is present, the parked VirtualMinecraft
   "time travel" program (below) would fit it naturally as a dimension hop instead of a chunk copy. A sibling
   project, not a feature of this mod; nothing here changes for it. Revisit after this mod's remaining work
   (compat testing) is done.
