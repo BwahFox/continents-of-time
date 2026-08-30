@@ -203,8 +203,7 @@ other mods installed (again this is for a modpack)"):
    the list; VirtualMinecraft and the parked modpack inclusions in the sibling project's plan are the obvious
    candidates). Look for: world-type list conflicts, other worldgen mods' biome/structure injection into hosted
    eras, TerraBlender-style surface-rule hooks (Moderner Beta has its own compat for that), and client-side
-   colour/fog mods fighting the per-continent visuals. Run server tests while the author is not playing on the
-   same machine (a dedicated server next to the client made the game lag, 2026-08-30).
+   colour/fog mods fighting the per-continent visuals.
    **Done 2026-08-30 — CTOV (ChoiceTheorem's Overhauled Village), the one the author expected trouble from
    ("CTOV villages only should spawn in areas that spawn normal villages"):** compatible by construction, verified
    live. CTOV ships no structure sets of its own; Lithostitched `add_structure_set_entries` puts its 78 village
