@@ -4,6 +4,9 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import dev.continentsoftime.atlas.AtlasChunkGenerator;
 import dev.continentsoftime.atlas.HostedEra;
+import dev.continentsoftime.atlas.structure.EraVersion;
+import java.util.List;
+import java.util.stream.Collectors;
 import dev.continentsoftime.atlas.layout.ContinentLayout;
 import dev.continentsoftime.atlas.layout.Seabed;
 import dev.continentsoftime.atlas.layout.Seat;
@@ -25,7 +28,8 @@ import org.jspecify.annotations.Nullable;
  * <ul>
  *   <li>{@code /cot seats} lists every era's seat (box and centre) in this world;</li>
  *   <li>{@code /cot where} says which era owns the chunk you are in, the coast field there, and the nearest continent;</li>
- *   <li>{@code /cot seat <era>} puts you on top of that era's continent at its centre (generating the chunk if needed).</li>
+ *   <li>{@code /cot seat <era>} puts you on top of that era's continent at its centre (generating the chunk if needed);</li>
+ *   <li>{@code /cot structures <era>} lists the structure sets that can generate on that era's continent (and its version).</li>
  * </ul>
  * Operator level 2, like {@code /tp}.
  */
@@ -41,6 +45,14 @@ public final class CotCommand {
 			.requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
 			.then(Commands.literal("seats").executes(context -> seats(context.getSource())))
 			.then(Commands.literal("where").executes(context -> where(context.getSource())))
+			.then(Commands.literal("structures")
+				.then(Commands.argument("era", IdentifierArgument.id())
+					.suggests((context, builder) -> {
+						AtlasChunkGenerator atlas = atlas(context.getSource());
+						return atlas == null ? builder.buildFuture()
+							: SharedSuggestionProvider.suggest(atlas.atlas().settings().eras().stream().map(Identifier::toString), builder);
+					})
+					.executes(context -> structures(context.getSource(), IdentifierArgument.getId(context, "era")))))
 			.then(Commands.literal("seat")
 				.then(Commands.argument("era", IdentifierArgument.id())
 					.suggests((context, builder) -> {
@@ -100,6 +112,25 @@ public final class CotCommand {
 		source.sendSuccess(() -> Component.literal(String.format("%d, %d: chunk owned by %s; coast field %.3f (%s); nearest continent %s",
 			x, z, owner == null ? "the ocean" : owner.id(), field, zone, nearest.id())), false);
 		return 1;
+	}
+
+	private static int structures(CommandSourceStack source, Identifier eraId) {
+		AtlasChunkGenerator atlas = atlas(source);
+		if (atlas == null) {
+			source.sendFailure(Component.literal("This dimension is not a Continents of Time atlas"));
+			return 0;
+		}
+		int index = atlas.atlas().settings().eras().indexOf(eraId);
+		if (index < 0) {
+			source.sendFailure(Component.literal("No era " + eraId + " in this world's roster; see /cot seats"));
+			return 0;
+		}
+		HostedEra era = atlas.atlas().eras().get(index);
+		List<Identifier> sets = atlas.structureSetsFor(era);
+		String accuracy = atlas.atlas().settings().eraAccurateStructures() ? "era-accurate" : "all versions";
+		source.sendSuccess(() -> Component.literal(String.format("%s (%s, %s): %d structure set(s): %s", eraId,
+			EraVersion.of(eraId), accuracy, sets.size(), sets.stream().map(Identifier::toString).sorted().collect(Collectors.joining(", ")))), false);
+		return sets.size();
 	}
 
 	private static int seat(CommandSourceStack source, Identifier eraId) throws CommandSyntaxException {

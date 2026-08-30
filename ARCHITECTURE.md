@@ -88,7 +88,9 @@ Facts that shaped the design:
 - `atlas.HostedEra` — builds an era's generator + biome source from an id: `minecraft:*` ids are vanilla
   noise-settings presets over the overworld multi-noise biome source; anything else is a Moderner Beta settings
   preset.
-- `atlas.AtlasSettings` — the roster, `max_continent_size`, `ocean_width`, `oceans`; fields missing from a world preset's
+- `atlas.structure.EraVersion` / `EraStructures` — where an era sits on the timeline and which vanilla structure sets
+  existed then (see "Era-accurate structures").
+- `atlas.AtlasSettings` — the roster, `max_continent_size`, `ocean_width`, `oceans`, `era_accurate_structures`; fields missing from a world preset's
   JSON default to the config file at creation time and are then stored explicitly in level.dat.
 - `atlas.Eras` — the default roster (26 eras).
 - `atlas.layout.Layout` — `eraAt(blockX, blockZ)` (an era index or `OCEAN`), `nearestEraAt`, and `chunkOwner`:
@@ -238,6 +240,23 @@ no positional hook short of two more mixins); **precipitation and snow/ice by sa
 **climate distribution** flags are not positional either (fuzzy grass if any era wants it; smooth borders only if
 every climate era does). Debug text: Moderner Beta's F3 entries read its own level state, so they stay silent on an
 atlas; `/cot where` is the atlas's own.
+
+## Era-accurate structures (built 2026-08-30, optional, default on)
+
+Vanilla places structures from a `ChunkGeneratorStructureState`: the level makes one from its generator's
+`createState(structureSets, randomState, seed)` — the sets whose structures can occur in the biome source's
+biomes, plus stronghold ring positions — and `createStructures` walks that state's sets per chunk, validating the
+biome at the candidate through the generator's **own** biome source. The atlas keeps `createStructures` (so the
+atlas biome source stays the authority, including the modern ocean at every coast) and swaps only the state per
+chunk: `stateFor(era)` asks the owning era's **hosted generator** for a state — Moderner Beta's generator applies
+its preset's structure overrides and removals there (the Beta ocean shrine, Legacy Console's stronghold rings) —
+over a `HolderLookup<StructureSet>` filtered by `EraStructures`: a vanilla set is allowed when the era's
+`EraVersion` (parsed from the preset id; variants inherit their base era's; PE, Bedrock and Legacy Console mapped
+to the Java versions with the same structures; the vanilla era and unknown ids are "modern") is not before the
+version that introduced it. Unknown sets (other mods', Moderner Beta's own) are allowed everywhere. Ocean chunks
+use the ocean era's state. The level's own state stays the union, which is what `/locate` reads — so `/locate` can
+name a place on an old continent where nothing is then placed; accepted. `/cot structures <era>` shows an era's
+live sets; `./gradlew structuresTest` checks the timeline and the filter headlessly.
 
 ## Not yet built
 

@@ -27,8 +27,9 @@ import java.util.List;
  * @param eras             the era roster in layout order; {@code null} in the file means the built-in default
  * @param oceans           {@code false} for the "no oceans" option: no open water, continents butt against each
  *                         other at hard seams (the nearest era's terrain fills the gaps)
+ * @param eraAccurateStructures keep structures that did not exist in an era's version off its continent
  */
-public record ContinentsConfig(int maxContinentSize, int oceanWidth, List<Identifier> eras, boolean oceans) {
+public record ContinentsConfig(int maxContinentSize, int oceanWidth, List<Identifier> eras, boolean oceans, boolean eraAccurateStructures) {
 	public static final int DEFAULT_MAX_CONTINENT_SIZE = 10_000;
 	public static final int DEFAULT_OCEAN_WIDTH = 2_000;
 
@@ -36,7 +37,7 @@ public record ContinentsConfig(int maxContinentSize, int oceanWidth, List<Identi
 	private static ContinentsConfig loaded;
 
 	public static ContinentsConfig defaults() {
-		return new ContinentsConfig(DEFAULT_MAX_CONTINENT_SIZE, DEFAULT_OCEAN_WIDTH, Eras.DEFAULT_ROSTER, true);
+		return new ContinentsConfig(DEFAULT_MAX_CONTINENT_SIZE, DEFAULT_OCEAN_WIDTH, Eras.DEFAULT_ROSTER, true, true);
 	}
 
 	public static synchronized ContinentsConfig get() {
@@ -57,6 +58,7 @@ public record ContinentsConfig(int maxContinentSize, int oceanWidth, List<Identi
 			int maxContinentSize = json.has("maxContinentSize") ? json.get("maxContinentSize").getAsInt() : defaults.maxContinentSize();
 			int oceanWidth = json.has("oceanWidth") ? json.get("oceanWidth").getAsInt() : defaults.oceanWidth();
 			boolean oceans = json.has("oceans") ? json.get("oceans").getAsBoolean() : defaults.oceans();
+			boolean eraAccurateStructures = json.has("eraAccurateStructures") ? json.get("eraAccurateStructures").getAsBoolean() : defaults.eraAccurateStructures();
 			List<Identifier> eras = defaults.eras();
 			if (json.has("eras") && json.get("eras").isJsonArray()) {
 				List<Identifier> parsed = new ArrayList<>();
@@ -74,7 +76,7 @@ public record ContinentsConfig(int maxContinentSize, int oceanWidth, List<Identi
 			if (oceanWidth < 0) {
 				oceanWidth = DEFAULT_OCEAN_WIDTH;
 			}
-			return new ContinentsConfig(maxContinentSize, oceanWidth, eras, oceans);
+			return new ContinentsConfig(maxContinentSize, oceanWidth, eras, oceans, eraAccurateStructures);
 		} catch (IOException | RuntimeException e) {
 			ContinentsOfTime.LOGGER.error("Could not read {}; using defaults", file, e);
 			return defaults;
@@ -83,10 +85,11 @@ public record ContinentsConfig(int maxContinentSize, int oceanWidth, List<Identi
 
 	private static void write(Path file, ContinentsConfig config) {
 		JsonObject json = new JsonObject();
-		json.addProperty("_comment", "Defaults for NEW worlds. maxContinentSize / oceanWidth are in blocks; oceans=false is the no-oceans option (no open water, continents meet at hard seams); eras lists the era roster in layout order (Moderner Beta settings presets, or minecraft:overworld for the modern generator).");
+		json.addProperty("_comment", "Defaults for NEW worlds. maxContinentSize / oceanWidth are in blocks; oceans=false is the no-oceans option (no open water, continents meet at hard seams); eraAccurateStructures keeps structures newer than an era off its continent; eras lists the era roster in layout order (Moderner Beta settings presets, or minecraft:overworld for the modern generator).");
 		json.addProperty("maxContinentSize", config.maxContinentSize());
 		json.addProperty("oceanWidth", config.oceanWidth());
 		json.addProperty("oceans", config.oceans());
+		json.addProperty("eraAccurateStructures", config.eraAccurateStructures());
 		JsonArray eras = new JsonArray();
 		config.eras().forEach(id -> eras.add(id.toString()));
 		json.add("eras", eras);

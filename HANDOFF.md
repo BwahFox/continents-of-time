@@ -31,7 +31,7 @@ Minecraft-API-touching code in few, obvious places so that job stays small.
   people who play Alpha".
 - **Continent size is configurable, default 10,000 × 10,000 blocks, as a maximum.** Continents are shaped by
   noise to look like coastlines, so they are usually smaller than the box; they are never larger than it.
-  (`config/continentsoftime.json`: `maxContinentSize`, `oceanWidth`, `eras`, `oceans`.)
+  (`config/continentsoftime.json`: `maxContinentSize`, `oceanWidth`, `eras`, `oceans`, `eraAccurateStructures`.)
 - **"No oceans" option** (author, 2026-08-29, built 2026-08-30): `oceans: false` in the config (`"oceans": false`
   in a world preset's settings) keeps the same seats but generates no open water — every column between
   continents belongs to the nearest era, whose own terrain fills the gap up to a hard seam at a chunk boundary
@@ -161,11 +161,17 @@ World → World Type list** and works from there.
 
 ## Next work, in order (the author's pick, 2026-08-29)
 
-1. **Era-accurate structures, optional** — structures that did not exist in an era's version do not generate on
-   its continent: filter structure sets per era behind a config flag (the atlas owns structure placement state).
-2. **1.20.1 backport** — after 1; the mod counts as complete then.
+1. **1.20.1 backport** — the mod counts as complete now (author's call: everything else stays parked).
 
 Everything else stays parked "until a later date" (author, 2026-08-29).
+
+Built 2026-08-30: **era-accurate structures** (`eraAccurateStructures`, default on, baked as
+`era_accurate_structures`): each chunk's structure placement uses a state built by its era's own generator (so
+Moderner Beta's per-preset overrides — ocean shrine, Legacy Console strongholds — still apply) over the structure
+sets that existed in the era's version (`atlas.structure.EraVersion`/`EraStructures`; vanilla sets dated, unknown
+sets allowed everywhere; non-Java eras mapped: PE→1.4, Bedrock by number, Legacy Console→1.13, Skylands→Beta
+1.7.3). `/cot structures <era>` lists what an era can place. Caveat: `/locate` uses the level's union state, so
+it can point to a spot on an old continent where the filter then places nothing. `./gradlew structuresTest`.
 
 Built 2026-08-30: the **"no oceans" option** (verified on a scratch server: gap columns owned by the nearest era,
 field 1.0, no atlas ocean) and the **infinite atlas** (harness-verified, and probed live on the seed-20260829 server: (100000, 100000) has a
@@ -186,11 +192,17 @@ and canyon carvers swapped in where the preset forces them, no carving at all wh
 - **Legacy Console styling** for some continents (re-console / Legacy4J) — rides with era-emulation.
 - Seasons, ambient sound, CTOV, Distant Horizons/Voxy, controller support — those are **modpack inclusions**,
   not this mod's code. The CTOV × VirtualMinecraft store compat hook belongs to pack-glue work, not here.
-- A config **screen** (the file exists; a GUI does not) — after the oceans work.
+- A config **screen**: the author's pointer (2026-08-30) is vanilla's **Customize** button on the Create World
+  screen — a `WorldPresetEditor` registered for the `continentsoftime:continents_of_time` preset, "the generally
+  accepted way of making world configs like what we do" — instead of a separate GUI. Client-only and optional
+  (the config file keeps working for servers). Still parked; do it when the author says.
 - **Coast biome transition** (author, 2026-08-29): once the ocean and the era biomes are settled, add a
   transition between them instead of the hard ocean-stops-here line. After the oceans work.
 - **Far Lands** (author, 2026-08-29: "not quite sure how I want to handle" them). Moderner Beta has a per-preset
   toggle; at ±12.5M blocks they lie far outside every seat, so the layout forecloses nothing. Undecided. An idea
+  **Seen by the author 2026-08-30 at x 12,563,023: the Far Lands generate (Moderner Beta's per-preset toggle,
+  untouched), and a continent that happens to be seated inside them "looks pretty trippy... that's neat"** — so
+  they work as-is; nothing to do unless the author wants a policy. An idea
   from the author (2026-08-30), parked by the author in the same breath: "what if all the continents began to
   clash there? like... fighting over the same generation? making everything look messy... maybe not, i don't
   want to add more features to this than what i already have planned".

@@ -22,6 +22,8 @@ and its old fog, where Moderner Beta has them). Nothing is playable in the inten
   offers gets a continent, plus the game's modern generator.
 - The world is infinite: past the first, timeline-ordered pass of every era, continents keep coming for ever
   (eras repeat, each with its own coastline; the finite levels exist once).
+- Era-accurate structures (on by default): no villages on Alpha, no ocean monuments before 1.8, no trial chambers
+  before 1.21 — each continent gets the structures its version had.
 - Optional "no oceans" mode: no open water at all, continents meet at hard seams (`"oceans": false`).
 - Continent size is configurable (`config/continentsoftime.json`; default up to 10,000 × 10,000 blocks —
   continents are coastline-shaped and usually smaller).

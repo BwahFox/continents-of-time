@@ -29,6 +29,17 @@ import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.NoiseBasedChunkGenerator;
 import net.minecraft.world.level.levelgen.NoiseGeneratorSettings;
 import net.minecraft.world.level.levelgen.RandomState;
+import net.minecraft.world.level.levelgen.structure.StructureSet;
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.RegistryAccess;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.chunk.ChunkGeneratorStructureState;
+import dev.continentsoftime.atlas.structure.EraStructures;
+import dev.continentsoftime.atlas.structure.EraVersion;
+import java.util.concurrent.ConcurrentHashMap;
 import net.minecraft.world.level.levelgen.blending.Blender;
 import org.jspecify.annotations.Nullable;
 
@@ -66,6 +77,12 @@ public class AtlasChunkGenerator extends NoiseBasedChunkGenerator {
 
 	private final AtlasBiomeSource atlas;
 	private Seabed seabed;
+	/** What the level handed {@link #createState}; the per-era states below are built from it on demand. */
+	private @Nullable HolderLookup<StructureSet> structureSets;
+	private @Nullable RandomState structureRandomState;
+	private long structureSeed;
+	/** Structure placement per era (index into the roster; {@code -1} is the ocean era), see {@link #stateFor}. */
+	private final ConcurrentHashMap<Integer, ChunkGeneratorStructureState> eraStructureStates = new ConcurrentHashMap<>();
 
 	public AtlasChunkGenerator(BiomeSource biomeSource, HolderGetter<NoiseGeneratorSettings> noiseSettings) {
 		super(biomeSource, noiseSettings.getOrThrow(NoiseGeneratorSettings.OVERWORLD));
@@ -90,6 +107,53 @@ public class AtlasChunkGenerator extends NoiseBasedChunkGenerator {
 	public void init(long seed) {
 		atlas.init(seed);
 		this.seabed = new Seabed(seed, getSeaLevel(), getMinY(), getMinY() + getGenDepth() - 1);
+	}
+
+	// ---- structures: placement state per era ----
+
+	/**
+	 * The level's own state — the union over every era's biomes, used by {@code /locate} and vanilla's
+	 * structure-aware code — plus a note of the inputs, so each era can get its own state on demand.
+	 */
+	@Override
+	public ChunkGeneratorStructureState createState(HolderLookup<StructureSet> structureSets, RandomState randomState, long seed) {
+		this.structureSets = structureSets;
+		this.structureRandomState = randomState;
+		this.structureSeed = seed;
+		eraStructureStates.clear();
+		return super.createState(structureSets, randomState, seed);
+	}
+
+	/**
+	 * An era's structure placement: built by the era's own generator (Moderner Beta applies its preset's structure
+	 * overrides and removals there) over the structure sets its version allows, when the world says structures are
+	 * era-accurate. The ocean era's state covers ocean chunks.
+	 */
+	private ChunkGeneratorStructureState stateFor(@Nullable HostedEra owner) {
+		int key = owner == null ? -1 : atlas.eras().indexOf(owner);
+		return eraStructureStates.computeIfAbsent(key, k -> {
+			HostedEra era = owner == null ? atlas.oceanEra() : owner;
+			HolderLookup<StructureSet> sets = java.util.Objects.requireNonNull(structureSets, "structure state requested before createState");
+			if (atlas.settings().eraAccurateStructures()) {
+				sets = EraStructures.filtered(sets, EraVersion.of(era.id()));
+			}
+			return era.generator().createState(sets, structureRandomState, structureSeed);
+		});
+	}
+
+	/** The structure sets that can place on an era's continent (the ocean era's for {@code null}), for {@code /cot structures}. */
+	public List<Identifier> structureSetsFor(@Nullable HostedEra era) {
+		return stateFor(era).possibleStructureSets().stream()
+			.map(holder -> holder.unwrapKey().map(ResourceKey::identifier).map(Identifier::toString).orElse("(inline: " + holder.value().structures().size() + " structure(s))"))
+			.map(Identifier::tryParse).filter(java.util.Objects::nonNull)
+			.toList();
+	}
+
+	/** Same as vanilla's — the atlas's biome source validates biomes — but with the owning era's structure state. */
+	@Override
+	public void createStructures(RegistryAccess registryAccess, ChunkGeneratorStructureState levelState, StructureManager structureManager,
+	                             ChunkAccess chunk, StructureTemplateManager templateManager, ResourceKey<Level> dimension) {
+		super.createStructures(registryAccess, stateFor(owner(chunk)), structureManager, chunk, templateManager, dimension);
 	}
 
 	/** Chunk futures swallow exceptions into a failed chunk result; log ours first so the cause is in the log. */

@@ -22,22 +22,27 @@ import java.util.Optional;
  * @param oceanWidth       minimum open water between two continents, in blocks.
  * @param oceans           whether the gaps between continents are open water (the default) or, with the "no
  *                         oceans" option, the nearest era's own terrain up to a hard seam.
+ * @param eraAccurateStructures whether structures that did not exist in an era's version stay off its continent
+ *                         (see {@code atlas.structure}).
  */
-public record AtlasSettings(List<Identifier> eras, int maxContinentSize, int oceanWidth, boolean oceans) {
+public record AtlasSettings(List<Identifier> eras, int maxContinentSize, int oceanWidth, boolean oceans, boolean eraAccurateStructures) {
 	public static final Codec<AtlasSettings> CODEC = RecordCodecBuilder.create(i -> i.group(
 		Identifier.CODEC.listOf().optionalFieldOf("eras").forGetter(s -> Optional.of(s.eras)),
 		Codec.intRange(256, 1_000_000).optionalFieldOf("max_continent_size").forGetter(s -> Optional.of(s.maxContinentSize)),
 		Codec.intRange(0, 1_000_000).optionalFieldOf("ocean_width").forGetter(s -> Optional.of(s.oceanWidth)),
-		Codec.BOOL.optionalFieldOf("oceans").forGetter(s -> Optional.of(s.oceans))
+		Codec.BOOL.optionalFieldOf("oceans").forGetter(s -> Optional.of(s.oceans)),
+		Codec.BOOL.optionalFieldOf("era_accurate_structures").forGetter(s -> Optional.of(s.eraAccurateStructures))
 	).apply(i, AtlasSettings::fromJson));
 
-	private static AtlasSettings fromJson(Optional<List<Identifier>> eras, Optional<Integer> maxContinentSize, Optional<Integer> oceanWidth, Optional<Boolean> oceans) {
+	private static AtlasSettings fromJson(Optional<List<Identifier>> eras, Optional<Integer> maxContinentSize, Optional<Integer> oceanWidth,
+	                                      Optional<Boolean> oceans, Optional<Boolean> eraAccurateStructures) {
 		ContinentsConfig config = ContinentsConfig.get();
 		return new AtlasSettings(
 			eras.orElseGet(config::eras),
 			maxContinentSize.orElse(config.maxContinentSize()),
 			oceanWidth.orElse(config.oceanWidth()),
-			oceans.orElse(config.oceans())
+			oceans.orElse(config.oceans()),
+			eraAccurateStructures.orElse(config.eraAccurateStructures())
 		);
 	}
 
