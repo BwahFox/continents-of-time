@@ -18,7 +18,8 @@ public final class Eras {
 	/**
 	 * Chronological through Java Edition, then the sidelines (Pocket/Bedrock, Legacy Console, Skylands). Variant
 	 * presets Moderner Beta also ships (large biomes, amplified, "water world", ...) are knobs on these eras, not
-	 * eras, so they are not seated by default; a config roster can add any of them.
+	 * eras, so they are not seated by default; a config roster can add any of them. The one exception is Alpha's
+	 * winter mode, seated after Alpha: to the people who play Alpha it is its own world (author's call, 2026-08-29).
 	 */
 	public static final List<Identifier> DEFAULT_ROSTER = List.of(
 		mb("classic_0_0_14a_08"),
@@ -30,6 +31,7 @@ public final class Eras {
 		mb("infdev_420"),
 		mb("infdev_611"),
 		mb("alpha"),
+		mb("alpha_winter"),
 		mb("beta_1_1_02"),
 		mb("beta"),
 		mb("beta_1_8_1"),

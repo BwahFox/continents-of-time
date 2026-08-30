@@ -22,11 +22,13 @@ Minecraft-API-touching code in few, obvious places so that job stays small.
 ## The spec (from the author, 2026-08-29)
 
 - **Every world-generation type Moderner Beta offers becomes a continent**, plus the game's own modern
-  generator. Default roster, in layout order (25): Classic 0.0.14a_08, Classic 0.30, Indev, Infdev 227, 325,
-  415, 420, 611, Alpha 1.1.2_01, Beta 1.1_02, Beta 1.7.3, Beta 1.8.1, Beta 1.9-pre3, 1.0.0, 1.1, 1.2.5, 1.6.4,
+  generator. Default roster, in layout order (26): Classic 0.0.14a_08, Classic 0.30, Indev, Infdev 227, 325,
+  415, 420, 611, Alpha 1.1.2_01, Alpha winter mode, Beta 1.1_02, Beta 1.7.3, Beta 1.8.1, Beta 1.9-pre3, 1.0.0, 1.1, 1.2.5, 1.6.4,
   1.12.2, 1.17.1, Modern (vanilla), Pocket Edition, Bedrock 1.2, Bedrock 1.17, Legacy Console (large), Skylands.
   Moderner Beta's *variant* presets (large biomes, amplified, water world, ...) are knobs on those eras, not
-  eras; they are not seated by default but any of them can be added to the roster in the config.
+  eras; they are not seated by default but any of them can be added to the roster in the config. Exception,
+  by the author (2026-08-29): **Alpha winter mode is seated by default** — "it is kind of its own thing to the
+  people who play Alpha".
 - **Continent size is configurable, default 10,000 × 10,000 blocks, as a maximum.** Continents are shaped by
   noise to look like coastlines, so they are usually smaller than the box; they are never larger than it.
   (`config/continentsoftime.json`: `maxContinentSize`, `oceanWidth`, `eras`.)
@@ -143,7 +145,7 @@ World → World Type list** and works from there.
 1. **Look at the per-continent visuals in the dev client** (built in session 4, not yet seen): create a new
    Continents of Time world, `/cot seat beta` (or `beta_1_8_1`, `release_1_1`), F3 for the coordinates; expect
    Beta's climate grass/foliage tint and sky colour there, vanilla colouring on the modern continent and at sea,
-   and a hard change at the coast. The client log must say `client climate installed for 7 of 25 eras` on world
+   and a hard change at the coast. The client log must say `client climate installed for 7 of 26 eras` on world
    load. If grass looks vanilla on a beta continent, first suspect: Moderner Beta's `beta_climatic_colors` in
    `run/client/config/moderner_beta.json` (vegetation/sky must be true). Then fix what the author reports.
 2. **A pass over the "things to look at in-game" list above** as the author reports them — coast-band shape,

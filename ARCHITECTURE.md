@@ -84,7 +84,7 @@ Facts that shaped the design:
   preset.
 - `atlas.AtlasSettings` — the roster, `max_continent_size`, `ocean_width`; fields missing from a world preset's
   JSON default to the config file at creation time and are then stored explicitly in level.dat.
-- `atlas.Eras` — the default roster (25 eras).
+- `atlas.Eras` — the default roster (26 eras).
 - `atlas.layout.Layout` — `eraAt(blockX, blockZ)` (an era index or `OCEAN`), `nearestEraAt`, and `chunkOwner`:
   ownership is decided once per chunk by its centre column, because every generation step of a chunk must go
   to one hosted generator. `Layout.single()` is one era everywhere (verification worlds).

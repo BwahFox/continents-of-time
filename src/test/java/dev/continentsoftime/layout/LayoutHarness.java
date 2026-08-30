@@ -18,19 +18,19 @@ import java.util.List;
 /**
  * Headless check of the atlas layout: {@code ./gradlew layoutTest [-Pseeds=1,2,3]}. No Minecraft involved.
  *
- * <p>For each seed it builds the default roster's layout (25 eras: 21 shaped, Legacy Console bordered at 5120, 3 finite 256x256 levels; home is
- * roster index 19, like {@code minecraft:overworld} in the default roster) and asserts: determinism across two
+ * <p>For each seed it builds the default roster's layout (26 eras: 22 shaped, Legacy Console bordered at 5120, 3 finite 256x256 levels; home is
+ * roster index 20, like {@code minecraft:overworld} in the default roster) and asserts: determinism across two
  * instances; every era present; the origin and a disc around it on the home continent; every continent's land
  * inside its box and no wider than the maximum; at least {@code oceanWidth} between any two continents' land;
  * a per-column cost worth caching once. It writes {@code build/layout/<seed>.png} (one pixel per 32 blocks) and
  * prints a coarse ASCII map for eyeballing.
  */
 public final class LayoutHarness {
-	private static final int ERAS = 25;
-	private static final int HOME = 19;
+	private static final int ERAS = 26;
+	private static final int HOME = 20;
 	private static final int[] FINITE = {0, 1, 2};
 	/** Legacy Console: an infinite generator with an origin-centred 5120-block world border, seated bordered. */
-	private static final int LEGACY_CONSOLE = 23;
+	private static final int LEGACY_CONSOLE = 24;
 	private static final int MAX_SIZE = 10_000;
 	private static final int OCEAN = 2_000;
 	private static final int PIXEL = 32;

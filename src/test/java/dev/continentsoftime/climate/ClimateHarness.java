@@ -36,14 +36,14 @@ import java.util.Optional;
  * intersection; a single-era layout routes everywhere; and the payload survives a round trip through its codec.
  */
 public final class ClimateHarness {
-	private static final int ERAS = 25;
-	private static final int HOME = 19;
+	private static final int ERAS = 26;
+	private static final int HOME = 20;
 	private static final int[] FINITE = {0, 1, 2};
-	private static final int LEGACY_CONSOLE = 23;
+	private static final int LEGACY_CONSOLE = 24;
 	/** Roster indices whose Moderner Beta biome provider samples a climate (beta_1_1_02 .. release_1_1, pe). */
-	private static final int[] CLIMATE = {9, 10, 11, 12, 13, 14, 20};
-	private static final int PE = 20;
-	private static final int RELEASE_1_1 = 14;
+	private static final int[] CLIMATE = {10, 11, 12, 13, 14, 15, 21};
+	private static final int PE = 21;
+	private static final int RELEASE_1_1 = 15;
 	private static final int MAX_SIZE = 10_000;
 	private static final int OCEAN = 2_000;
 
@@ -154,7 +154,7 @@ public final class ClimateHarness {
 		CompoundTag tag = new CompoundTag();
 		tag.putString("moderner_beta:provider", "moderner_beta:beta");
 		tag.putInt("answer", 42);
-		AtlasInfoPayload sent = new AtlasInfoPayload(20260829L, 10_000, 2_000, 19, List.of(
+		AtlasInfoPayload sent = new AtlasInfoPayload(20260829L, 10_000, 2_000, 20, List.of(
 			new AtlasInfoPayload.Era(Identifier.fromNamespaceAndPath("moderner_beta", "classic_0_30"), 256, 256, false, true, Optional.empty()),
 			new AtlasInfoPayload.Era(Identifier.fromNamespaceAndPath("moderner_beta", "beta"), 10_000, 10_000, true, false, Optional.of(tag)),
 			new AtlasInfoPayload.Era(Identifier.fromNamespaceAndPath("minecraft", "overworld"), 10_000, 10_000, true, false, Optional.empty())));
