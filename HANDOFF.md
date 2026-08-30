@@ -84,6 +84,11 @@ finite eras (Classic, Indev) are small islands, since that is what those worlds 
   with the translated border — decide after seeing it; finite levels' surfaces after the coast clamp; era
   carvers run over the seabed fill in coastal era chunks (small underwater cave pockets seen in a Skylands
   column at y 12..14) — harmless, could be masked by skipping carvers below the seabed.
+- **Spawn and the `/cot` command (session 3):** the server's world spawn for seed 20260829 is (0, 73, 0) — on the
+  home continent, as the layout guarantees (the origin is always land). `/cot seats` lists every era's seat
+  and box, `/cot where` says who owns the chunk you stand in plus the coast field and the nearest continent,
+  `/cot seat <era>` teleports you onto that era's continent at its centre (operator level 2; the era argument
+  tab-completes from the roster). Verified over RCON except the teleport, which needs a player.
 - **Lesson from this session:** chunks generated in an earlier run stay on disk — the chunk pyramid pre-generates
   a radius around every loaded chunk — so a fix can look intermittent when re-probed on a used world. Verify
   on fresh chunks or a fresh world.
@@ -113,13 +118,11 @@ World → World Type list** and works from there.
 
 ## Next work, in order
 
-1. **Spawn on the home continent** and a first *look* from a client. The origin is guaranteed land, so vanilla
-   spawn search should already succeed; verify, then take screenshots of two coasts (modern → sea, and a
-   Moderner Beta era → sea), the Classic island at its seat, and the Legacy Console coast; fix what looks
-   wrong (see "Things to look at in-game" above). A `/cot seat <era>` teleport command would make this and all
-   future looking cheap — small, worth doing first.
-2. **Per-continent visuals** — Moderner Beta's old fog/sky/grass colouring is a per-level flag that the atlas
-   turns off everywhere; a composite climate sampler would bring it back per continent. Lower priority.
+1. **Per-continent visuals** — Moderner Beta's old fog/sky/grass colouring is a per-level flag that the atlas
+   turns off everywhere; a composite climate sampler would bring it back per continent. Study pass first: how
+   Moderner Beta flags a level as "modded" and where its climate sampler is consulted client-side.
+2. **A pass over the "things to look at in-game" list above** as the author reports them — coast-band shape,
+   Legacy Console's ocean-biome land patches, finite-level surfaces, carvers over the seabed.
 3. **1.20.1 backport** — after the mod is complete (author's call).
 
 ## Parked (the author's own calls, 2026-08-29 — do not pull forward)

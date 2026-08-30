@@ -2,6 +2,7 @@ package dev.continentsoftime;
 
 import dev.continentsoftime.atlas.AtlasBiomeSource;
 import dev.continentsoftime.atlas.AtlasChunkGenerator;
+import dev.continentsoftime.command.CotCommand;
 import dev.continentsoftime.config.ContinentsConfig;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -28,6 +29,7 @@ public final class ContinentsOfTime implements ModInitializer {
 		Registry.register(BuiltInRegistries.CHUNK_GENERATOR, id("atlas"), AtlasChunkGenerator.CODEC);
 		Registry.register(BuiltInRegistries.BIOME_SOURCE, id("atlas"), AtlasBiomeSource.CODEC);
 		ServerLifecycleEvents.SERVER_STARTING.register(ContinentsOfTime::initWorlds);
+		CotCommand.register();
 
 		ContinentsConfig config = ContinentsConfig.get();
 		LOGGER.info("Continents of Time: {} eras in the roster, continents up to {} blocks, oceans at least {} blocks",

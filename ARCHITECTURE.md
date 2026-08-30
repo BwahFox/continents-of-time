@@ -73,6 +73,8 @@ Facts that shaped the design:
 - `atlas.Translated` and `mixin.*` — the offset that moves an anchored era to its seat, and the Moderner Beta
   mixins that apply it (see "Anchored eras").
 - `atlas.layout.Seabed` — the ocean floor and the coast band as functions of the coast field.
+- `command.CotCommand` — `/cot seats | where | seat <era>`: the seat table, what the atlas thinks of where you
+  stand, and a teleport onto any era's continent. Operator level 2.
 - `atlas.HostedEra` — builds an era's generator + biome source from an id: `minecraft:*` ids are vanilla
   noise-settings presets over the overworld multi-noise biome source; anything else is a Moderner Beta settings
   preset.
