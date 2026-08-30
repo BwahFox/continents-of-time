@@ -10,8 +10,8 @@ changed anything (then commit + push to BOTH remotes: `origin` on GitHub and `se
 is gitignored here) holding the personal context this public repo must never contain; update and push it (its
 own private remotes) alongside this one at every wrap-up.
 
-**THIS REPO IS WRITTEN FOR THE PUBLIC.** It is private on GitHub until the mod is basically done (a public release
-is planned then), but every file in it — HANDOFF included — is written for strangers from the first line:
+**THIS REPO IS PUBLIC** (since release 1.0.0, 2026-08-30). Every file in it — HANDOFF included — is written for
+strangers from the first line:
 the author is "BwahFox", never a first name; no schedules, hardware setups, home-network details, or personal
 context in any tracked file. Personal context belongs in the agent's memory directory, which is not in git.
 This rule exists because its absence cost a scramble on the sibling project; do not relearn it.

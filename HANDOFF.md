@@ -1,7 +1,7 @@
 # Project state — read this first
 
 *(Authoritative for state; update before ending any session that changed anything. This file is written for the
-public (the repo is private until release) — see CLAUDE.md's hygiene rule. Maintenance: HANDOFF first when wrapping up, then commit + push to both remotes.)*
+public (the repo is public) — see CLAUDE.md's hygiene rule. Maintenance: HANDOFF first when wrapping up, then commit + push to both remotes.)*
 
 **What this is:** a Fabric mod that puts every era of Minecraft terrain generation into one world — each
 historical generator is its own **continent**, separated by big oceans. Sail far enough and you make landfall
@@ -63,12 +63,10 @@ finite eras (Classic, Indev) are small islands, since that is what those worlds 
 
 ## State as of 2026-08-30 (end of session 5): 1.0.0 prepared
 
-**Release 1.0.0 is staged (2026-08-30):** version bumped, both jars built clean with every harness passing, tag
-`v1.0.0` pushed to both remotes, and a **draft** GitHub release with both jars attached and CHANGELOG's notes.
-Two clicks remain, both the author's: make the repository public (GitHub → Settings → Danger zone, or
-`gh repo edit BwahFox/continents-of-time --visibility public --accept-visibility-change-consequences`) and
-publish the draft (`gh release edit v1.0.0 --draft=false`). Player-facing documentation is README.md
-(requirements per version, playing, options, multiplayer, known limitations) and CHANGELOG.md.
+**Release 1.0.0 is published (2026-08-30):** https://github.com/BwahFox/continents-of-time/releases/tag/v1.0.0 —
+both jars, CHANGELOG's notes; the repository is public. Player-facing documentation is README.md (requirements
+per version, playing, options, multiplayer, known limitations) and CHANGELOG.md. Before going public the tracked
+files and the commit history were swept for personal information (the author keeps her git email as is).
 
 **Everything on the list is built. The layout, the oceans/seams, spawn, `/cot`, the optional client half, Alpha
 winter mode, the re-open fix, the "no oceans" option, the infinite atlas, era-accurate structures and cave biomes
@@ -224,8 +222,7 @@ other mods installed (again this is for a modpack)"):
    unknown set by the vanilla structure tags its structures carry (`#minecraft:village`, `mineshaft`,
    `shipwreck`, `ocean_ruin`, `ruined_portal`, `eye_of_ender_located` exist on both versions) plus a config map
    for the rest — an hour's work in `EraStructures.filtered`, with a harness check on the config path.
-2. **First release — prepared as 1.0.0 (see the top of the State section):** the author publishes the draft and
-   makes the repo public when ready. Later releases: bump `mod_version` in `gradle.properties`, add a CHANGELOG
+2. **First release — 1.0.0 published 2026-08-30.** Later releases: bump `mod_version` in `gradle.properties`, add a CHANGELOG
    entry, `./gradlew clean build layoutTest climateTest timelineTest`, tag `v<version>`, push both remotes,
    `gh release create v<version> versions/*/build/libs/continentsoftime-<version>+*.jar --notes-file <notes>`.
    GitHub releases only, never Modrinth.
