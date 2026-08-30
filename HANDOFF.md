@@ -67,9 +67,8 @@ finite eras (Classic, Indev) are small islands, since that is what those worlds 
 winter mode, the re-open fix, the "no oceans" option, the infinite atlas, era-accurate structures and cave biomes
 were all verified by session 4 (the visuals and the coasts by the author in the dev client). Session 5 did the
 1.20.1 backport: the repo is now a two-version Stonecutter build, both jars build, all three harnesses pass on
-both nodes, and a 1.20.1 dedicated server was probed end to end (details below). The one thing no session has
-seen live is the client half on 1.20.1 (grass/sky/fog per continent) — it compiles and its mixin targets remap,
-but the author's standing rule is no unasked dev-client launches, so that check is hers; recipe below.**
+both nodes, a 1.20.1 dedicated server was probed end to end (details below), and the author tested the 1.20.1
+client half in the dev client the same day ("seems to work"). The backport is done.**
 
 - Build: `./gradlew build` (one JDK, Java 25; Loom 1.17; Stonecutter 0.9.7) produces
   `versions/26.2/build/libs/continentsoftime-0.1.0+26.2.jar` (Fabric API 0.158.0+26.2, Moderner Beta
@@ -197,12 +196,9 @@ Type list** and works from there. `:1.20.1:runClient` is the same for 1.20.1 (no
 ## Next work, in order
 
 Nothing is queued: the 1.20.1 backport was the last item on the author's list (2026-08-29: the mod counts as
-complete; everything else stays parked "until a later date"). Two things wait on the author, not on a session:
-
-1. **Look at the 1.20.1 client half in the dev client** (recipe above) — the only piece of the backport no one
-   has seen live. If tints/sky/fog are wrong there, the places to look are the four client mixins (their
-   `//? else` branches) and `ClientAtlas`.
-2. **Decide on a release**: the plan is GitHub releases only, one jar per version, once the author calls it done.
+complete; everything else stays parked "until a later date"), and the author confirmed the 1.20.1 client half
+in the dev client on 2026-08-30. What waits on the author, not on a session: **deciding on a release** — GitHub
+releases only, one jar per version, once the author calls it done.
 
 Built 2026-08-30 (session 5): **the 1.20.1 backport** — Stonecutter two-version build, verified on a 1.20.1 server
 (state section above); how the versions differ in the code is in ARCHITECTURE.md.
@@ -233,6 +229,11 @@ and canyon carvers swapped in where the preset forces them, no carving at all wh
 420 has none, as in that version — and noise caves off in old presets).
 
 ## Parked (the author's own calls, 2026-08-29 — do not pull forward)
+
+- **Join from older game versions and spawn in that version's continent** (author, 2026-08-30, "just an idea
+  for later"; Interloper-inspired): a client on, say, Beta 1.7.3 connects to the server and appears on the Beta
+  1.7.3 continent. The author's pointer is what ViaVersion/ViaFabric do (protocol translation). Not this mod's
+  code as it stands — it would be protocol work on top of the atlas, and needs its own study pass — so parked.
 
 - **Era-emulation gameplay** (older continents disable newer mechanics) — "might be impossible, I don't
   know"; revisit only when the atlas works.
