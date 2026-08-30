@@ -96,10 +96,11 @@ World → World Type list** and works from there.
 
 ## Next work, in order
 
-1. **Oceans and seams.** Between continents the atlas must generate open ocean itself (vanilla ocean/deep-ocean
-   biomes; ocean floor, water to sea level) instead of routing ocean chunks to the nearest era, and at each
-   coast pull the era's terrain down under the water with a falloff by distance-to-coast, so no era ever ends
-   in a cliff. `ContinentLayout.fieldAt(x, z)` is the signed coast field to drive that (positive inland,
+1. **Oceans and seams.** Between continents the atlas must generate open ocean itself instead of routing ocean
+   chunks to the nearest era. **The ocean is the modern ocean** (author, 2026-08-29): vanilla ocean/deep-ocean
+   biomes and vanilla ocean floor, water to sea level; **it simply stops at each coast** — the era's own biomes
+   begin at the coastline, no biome blending (a transition is parked, below). At each coast pull the era's
+   terrain down under the water with a falloff by distance-to-coast, so no era ever ends in a cliff. `ContinentLayout.fieldAt(x, z)` is the signed coast field to drive that (positive inland,
    negative at sea, crossing zero at the coast). `createBiomes` for multi-era worlds must fill from the atlas
    biome source (today it delegates, which is right only on land). **Finite eras must be translated to their
    seat** (see the finding above); Skylands: ocean below, islands above. Recommend the strongest model tier
@@ -118,6 +119,11 @@ World → World Type list** and works from there.
 - Seasons, ambient sound, CTOV, Distant Horizons/Voxy, controller support — those are **modpack inclusions**,
   not this mod's code. The CTOV × VirtualMinecraft store compat hook belongs to pack-glue work, not here.
 - A config **screen** (the file exists; a GUI does not) — after the oceans work.
+- **Coast biome transition** (author, 2026-08-29): once the ocean and the era biomes are settled, add a
+  transition between them instead of the hard ocean-stops-here line. After the oceans work.
+- **"No oceans" option** (author, 2026-08-29, on seeing the hard seam between modern and Infdev 420 terrain in
+  the dev client: "i like this"): a config switch that skips ocean generation and leaves continents butting
+  against each other at chunk seams. Base functions first; revisit after.
 - **Far Lands** (author, 2026-08-29: "not quite sure how I want to handle" them). Moderner Beta has a per-preset
   toggle; at ±12.5M blocks they lie far outside every seat, so the layout forecloses nothing. Undecided.
 - **Era-accurate structures, optional** (author, 2026-08-29): structures that did not exist in an era's version
