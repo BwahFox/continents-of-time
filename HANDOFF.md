@@ -1,7 +1,7 @@
 # Project state — read this first
 
-*(Authoritative for state; update before ending any session that changed anything. This file is PUBLIC — see
-CLAUDE.md's hygiene rule. Maintenance: HANDOFF first when wrapping up, then commit + push to both remotes.)*
+*(Authoritative for state; update before ending any session that changed anything. This file is written for the
+public (the repo is private until release) — see CLAUDE.md's hygiene rule. Maintenance: HANDOFF first when wrapping up, then commit + push to both remotes.)*
 
 **What this is:** a Fabric mod that puts every era of Minecraft terrain generation into one world — each
 historical generator is its own **continent**, separated by big oceans. Sail far enough and you make landfall
@@ -53,8 +53,8 @@ finite eras (Classic, Indev) are small islands, since that is what those worlds 
   finds `moderner_beta:beta_forest/desert/plains` near spawn and finds no vanilla `plains`/`forest`. A control
   start on Moderner Beta's own preset shows the same two startup warnings (`moderner_beta:blocksource` empty,
   "Empty height range"), so they are its normal noise, not ours.
-- Not yet done in-game: nobody has *looked* at it from a client yet; the multi-era preset currently generates
-  era 0 (Classic 0.0.14a_08) everywhere because the layout is `single()`.
+- Seen in-game (dev client): beta terrain renders; the world type is selectable. The multi-era preset currently
+  generates era 0 (Classic 0.0.14a_08) everywhere because the layout is `single()`.
 
 **Test recipe (headless):** `run/server/` holds `eula.txt` and `server.properties` (offline mode, port 25599,
 RCON on 25598 password `cottest`, view distance 6). `./gradlew runServer`, then drive it with a ten-line RCON
@@ -65,7 +65,8 @@ The `run/` directory is gitignored; reuse the world there rather than generating
 classpath; offline "Player###" account). `./gradlew runClient --args="--quickPlaySingleplayer single_era_beta"`
 opens straight into a copy of the verified beta world (`run/client/saves/single_era_beta`, copied from the
 server world, so recreate it from `run/server/world` if it is ever missing). Verified 2026-08-29: the client
-loads it and renders beta 1.7.3 terrain; the world-type list on Create World is still unchecked by eye.
+loads it and renders beta 1.7.3 terrain, and the author confirmed **Continents of Time appears in the Create
+World → World Type list** and works from there.
 
 ## Next work, in order
 
