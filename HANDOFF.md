@@ -298,6 +298,12 @@ and canyon carvers swapped in where the preset forces them, no carving at all wh
 
 ## Parked (the author's own calls, 2026-08-29 — do not pull forward)
 
+- **A second, separate mod: a dimension for every generation type** (author, 2026-08-30, idea): for players
+  who want full accuracy rather than one stitched world — each era is its own dimension, so each keeps its own
+  sea level, world height and sky with no seams or coast clamping at all. The parked VirtualMinecraft
+  "time travel" program (below) would fit it naturally as a dimension hop instead of a chunk copy. A sibling
+  project, not a feature of this mod; nothing here changes for it. Revisit after this mod's remaining work
+  (compat testing) is done.
 - **VirtualMinecraft integration: a "time travel" program** (author, 2026-08-30, "just an idea for now"): a
   program on a VirtualMinecraft computer that copies the chunk you stand in and moves it to the nearest area of
   the era you picked — you type a date (e.g. "June 19, 2021") and it takes you to whatever version was current
