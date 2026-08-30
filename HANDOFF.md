@@ -50,7 +50,8 @@ finite eras (Classic, Indev) are small islands, since that is what those worlds 
 ## State as of 2026-08-29 (session 4)
 
 **The layout, the oceans/seams, spawn, `/cot` and the optional client half (per-continent visuals) are built and
-verified — the visuals by the author in the dev client ("this works", 2026-08-29). Next is the in-game pass.**
+verified — the visuals and the coasts by the author in the dev client (2026-08-29: "this works", "everything looks
+fine"). The base is done; what comes next is the author's pick from the Parked list, then the backport.**
 
 - Build: `./gradlew build` (Java 25, Loom 1.17, Fabric API 0.158.0+26.2, Moderner Beta 5.0.0-alpha.3+26.2 from
   the Modrinth maven) produces `build/libs/continentsoftime-0.1.0.jar`. No Stonecutter yet (26.2 only for now).
@@ -84,7 +85,7 @@ verified — the visuals by the author in the dev client ("this works", 2026-08-
   bedrock/stone seabed to ~y 18, water to 63, air, islands at y 86..137; the author then confirmed the lifted
   Skylands in the dev client ("works"). No generation exceptions. The author looked at the rest in the dev
   client too: "everything seems to be working".
-- **Things to look at in-game (not verified visually yet):** the coast band's shape (era terrain higher than
+- **Things the author looked at in-game (2026-08-29, accepted as-is: "everything looks fine"):** the coast band's shape (era terrain higher than
   the shoreline is cut along a quadratic rise; era terrain lower — an era's own sea at the layout coast — is
   filled up to a sandbar at the shoreline); Legacy Console shows ocean-biome patches on land inside its box
   (x -42340..-41560 at z 80976 for seed 20260829), possibly its own height-based biome injection interacting
@@ -147,8 +148,10 @@ World → World Type list** and works from there.
 
 ## Next work, in order
 
-1. **A pass over the "things to look at in-game" list above** as the author reports them — coast-band shape,
-   Legacy Console's ocean-biome land patches, finite-level surfaces, carvers over the seabed.
+1. **Nothing in flight.** The in-game pass over the "things to look at" list is closed: the author looked at the
+   coasts, the seats and the visuals in the dev client (2026-08-29) — "everything looks fine, we're never going to
+   be able to make it perfectly smooth". Re-open only for something specific the author reports. The candidates
+   for what comes next are the Parked list below (author picks) and the backport.
 2. **1.20.1 backport** — after the mod is complete (author's call).
 
 ## Parked (the author's own calls, 2026-08-29 — do not pull forward)
