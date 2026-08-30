@@ -243,6 +243,12 @@ and canyon carvers swapped in where the preset forces them, no carving at all wh
 
 ## Parked (the author's own calls, 2026-08-29 — do not pull forward)
 
+- **VirtualMinecraft integration: a "time travel" program** (author, 2026-08-30, "just an idea for now"): a
+  program on a VirtualMinecraft computer that copies the chunk you stand in and moves it to the nearest area of
+  the era you picked — you type a date (e.g. "June 19, 2021") and it takes you to whatever version was current
+  then (1.17). Pack-glue between the two mods, not this mod's core; needs a date→version table (the timeline
+  package already knows era versions), a chunk copy, and a "nearest continent of era X" query, which
+  `ContinentLayout` can answer.
 - **Join from older game versions and spawn in that version's continent** (author, 2026-08-30, "just an idea
   for later"; Interloper-inspired): a client on, say, Beta 1.7.3 connects to the server and appears on the Beta
   1.7.3 continent. The author's pointer is what ViaVersion/ViaFabric do (protocol translation). Not this mod's
