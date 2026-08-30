@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.0.1 — 2026-08-30
+
+- **Threaded world generation (C2ME) no longer corrupts chunks.** Two races, both in how the atlas drives many
+  generators through objects vanilla assumes belong to one: each era's structure-placement state is now
+  completed before any worker can use it (vanilla pre-fills its own on the server thread; the atlas's per-era
+  states were filled lazily by whichever workers arrived first — "Failed to load chunk … ArrayIndexOutOfBounds"),
+  and the surface step runs one chunk at a time because Moderner Beta keeps its per-chunk surface context on the
+  dimension's single surface system (two eras surfacing at once overwrote each other — "… rand is null").
+  Pregeneration with C2ME's threaded worldgen is now about three times faster than single-threaded generation on
+  an 8-core machine, with no failed chunks.
+- **Requires Fabric Loader 0.19.5 or newer** on both versions (it always did: the mod is built against Loader
+  0.19.5's Mixin, and 0.19.3's bundled MixinExtras cannot read its `@Redirect`s — Moderner Beta's startup died
+  with "ArrayList cannot be cast to AnnotationNode"). The requirement is now declared, so the loader says so
+  instead of crashing.
+
 ## 1.0.0 — 2026-08-30
 
 First release, for Minecraft 26.2 and 1.20.1 (one jar each, built from one source tree).

@@ -336,6 +336,31 @@ one it used. Run directories are per version: `run/<mc>/server`, `run/<mc>/clien
 Adding a Minecraft version means: a `versions/<mc>/gradle.properties`, a line in `settings.gradle`, and a pass
 over the replacements, `Compat`, and every `//?` site — `grep -rn '//?' src` lists them all.
 
+## Threaded world generation (fixed 2026-08-30, 1.0.1)
+
+Vanilla already generates chunks on worker threads, but its generator objects are built for one generator per
+dimension; C2ME's threaded worldgen widens every window, and the atlas — up to twenty-six generators behind one
+`ChunkGenerator` — fell through two of them. Both fixes are in `AtlasChunkGenerator`, and both are about making
+shared-by-assumption objects safe rather than locking the world:
+
+- **Structure placement state.** Vanilla fills a `ChunkGeneratorStructureState`'s stronghold ring positions once,
+  eagerly, on the server thread (`ServerLevel`'s constructor) — a plain hash map, never touched concurrently. The
+  atlas's per-era states (`stateFor`, era-accurate structures) are created lazily inside a `ConcurrentHashMap`,
+  which made the *creation* safe but left the *first use* — the lazy fill — to whichever workers reached it
+  together. `ensureStructuresGenerated()` is now called inside the `computeIfAbsent`, so a state is complete
+  before it is visible.
+- **The surface step.** Moderner Beta parks its per-chunk context on the dimension's single `SurfaceSystem`: the
+  era's chunk provider and surface properties as plain fields, the chunk's random in a thread-local that its
+  `buildSurface` head-inject seeds *only if a provider is already set*. One generator never notices. With many,
+  two workers overwrite each other's provider mid-chunk, and a chunk that begins with no provider and sees one
+  appear from another thread reaches the surface-depth hook with no random (`rand is null`). `buildSurface` is
+  therefore serialised across the atlas (`SURFACE_LOCK`), ocean chunks included, so the context is constant for a
+  whole chunk. The step is a small share of a chunk's work; noise, biomes, carving and decoration still run in
+  parallel — measured at ~3× single-threaded throughput on eight cores.
+
+Everything else the atlas holds is already thread-aware: `ContinentLayout`'s far seats and chunk cache are
+concurrent maps, and Moderner Beta's providers guard their own noise caches with a `StampedLock`.
+
 ## Not yet built
 
 The in-game checks listed in HANDOFF.md ("things to look at"), and water tint and climate precipitation per

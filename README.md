@@ -17,7 +17,7 @@ generator; this mod is the atlas around them.
 |---|---|---|
 | Jar | `continentsoftime-<version>+26.2.jar` | `continentsoftime-<version>+1.20.1.jar` |
 | Java | 25 | 17 or newer |
-| Fabric Loader | ≥ 0.19.3 | ≥ 0.19.3 |
+| Fabric Loader | ≥ 0.19.5 | ≥ 0.19.5 |
 | [Fabric API](https://modrinth.com/mod/fabric-api) | any | any |
 | [Moderner Beta](https://modrinth.com/mod/moderner-beta) | 5.0.0-alpha.3 **+26.2** | 5.0.0-alpha.3 **+1.20.1** |
 

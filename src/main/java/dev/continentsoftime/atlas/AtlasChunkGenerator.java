@@ -142,7 +142,14 @@ public class AtlasChunkGenerator extends NoiseBasedChunkGenerator {
 			if (atlas.settings().eraAccurate()) {
 				sets = EraStructures.filtered(sets, EraVersion.of(era.id()));
 			}
-			return era.generator().createState(sets, structureRandomState, structureSeed);
+			ChunkGeneratorStructureState state = era.generator().createState(sets, structureRandomState, structureSeed);
+			// Vanilla computes a state's ring positions (strongholds) once, on the server thread, before any chunk
+			// exists (ServerLevel's constructor). These per-era states are born on worker threads, and their first
+			// use would otherwise be a lazy, unsynchronised fill of a plain hash map — under threaded world
+			// generation (C2ME) two workers reach it at once and corrupt it. Filling it here, inside the map's
+			// own lock, makes each state complete before anyone can see it.
+			state.ensureStructuresGenerated();
+			return state;
 		});
 	}
 
@@ -232,18 +239,33 @@ public class AtlasChunkGenerator extends NoiseBasedChunkGenerator {
 			.thenApply(c -> logged("shape coast", c, () -> shapeCoast(c, owner)));
 	}
 
+	/**
+	 * The surface step runs one chunk at a time. The dimension has a single {@link RandomState#surfaceSystem()},
+	 * and Moderner Beta parks its per-chunk context on it (the era's chunk provider and surface properties as
+	 * plain fields, the chunk's random in a thread-local seeded at the head of vanilla's {@code buildSurface} only
+	 * when a provider is already set) before handing it to vanilla. One generator per world never notices; the
+	 * atlas runs up to twenty-six of them through that one object, and under threaded world generation (C2ME)
+	 * two workers surfacing two eras at once overwrite each other's provider mid-chunk — and a chunk that starts
+	 * with no provider (so no random of its own) and sees one appear from another thread before its surface-depth
+	 * hook runs dies in {@code getSurfaceDepth}. Serialising the step keeps the context constant for the whole
+	 * chunk; it is a small share of a chunk's work, so the other steps still parallelise.
+	 */
+	private static final Object SURFACE_LOCK = new Object();
+
 	@Override
 	public void buildSurface(WorldGenRegion region, StructureManager structureManager, RandomState randomState, ChunkAccess chunk) {
 		HostedEra owner = owner(chunk);
-		if (owner == null) {
-			super.buildSurface(region, structureManager, randomState, chunk); // vanilla's rules: gravel and sand floors, deepslate, bedrock
-			return;
+		synchronized (SURFACE_LOCK) {
+			if (owner == null) {
+				super.buildSurface(region, structureManager, randomState, chunk); // vanilla's rules: gravel and sand floors, deepslate, bedrock
+				return;
+			}
+			// Before the era's surface rules run, so they see the modern ocean on sea columns; and again after, because
+			// Moderner Beta injects its own biomes (beaches, oceans) during its surface step.
+			logged("paint sea", chunk, () -> paintSea(chunk, randomState.sampler()));
+			logged("era surface", chunk, () -> { owner.generator().buildSurface(region, structureManager, randomState, chunk); return chunk; });
+			logged("paint sea after surface", chunk, () -> paintSea(chunk, randomState.sampler()));
 		}
-		// Before the era's surface rules run, so they see the modern ocean on sea columns; and again after, because
-		// Moderner Beta injects its own biomes (beaches, oceans) during its surface step.
-		logged("paint sea", chunk, () -> paintSea(chunk, randomState.sampler()));
-		logged("era surface", chunk, () -> { owner.generator().buildSurface(region, structureManager, randomState, chunk); return chunk; });
-		logged("paint sea after surface", chunk, () -> paintSea(chunk, randomState.sampler()));
 	}
 
 	// Before 1.21.2 carving is two steps (air, then liquid) and the step is an argument.

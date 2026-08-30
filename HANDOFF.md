@@ -61,6 +61,23 @@ server-side and the biomes are data-driven and synced at login. **Keep it that w
 wide; the Legacy Console seat uses the *large* preset; Skylands is seated (floating islands over open ocean);
 finite eras (Classic, Indev) are small islands, since that is what those worlds were.
 
+## State as of 2026-08-30 (session 6): 1.0.1 — safe under C2ME's threaded worldgen
+
+**Session 6 (2026-08-30):** the author pregenerated a 1.0.0 world with Chunky under C2ME and got "Failed to load
+chunk" toasts — two races, both fixed in `AtlasChunkGenerator` (ARCHITECTURE "Threaded world generation"): the
+per-era structure state's lazy fill (now completed inside the `computeIfAbsent`) and Moderner Beta's per-chunk
+surface context on the shared `SurfaceSystem` (the surface step is now serialised). Also declared the real
+loader requirement, ≥ 0.19.5 (built against its Mixin; 0.19.3's MixinExtras 0.5.4 cannot read the mod's
+`@Redirect`s and kills Moderner Beta's entrypoint at startup — found when a fresh Prism instance on 0.19.3
+crashed). **Compat test recipe with C2ME:** drop `c2me-fabric-mc26.2-*.jar` and `Chunky-Fabric-*.jar` into
+`run/26.2/server/mods/` (gitignored), fresh `level-name`, then over RCON `chunky center x z`, `chunky radius r`,
+`chunky start`; a run is clean when the log has no "Failed to load chunk" / exception between "Task started"
+and "Task finished". The jars stay there (like CTOV's on 1.20.1), so every dev-server run is a C2ME run now.
+**Verified 2026-08-30 on a fresh seed-20260829 world:** four Chunky runs, 20,260 chunks — the modern origin
+(r 512), the Beta 1.1_02 east coast at (−8500, 828) (r 768: era chunks, coast band and ocean), the Infdev 227
+west coast at (9000, 969) (r 512) and the Indev finite level (r 384) — zero failed chunks, 270–375 cps; the
+1.0.0 code failed within seconds on the same setup. ~93 cps was the single-threaded rate before.
+
 ## State as of 2026-08-30 (end of session 5): 1.0.0 prepared
 
 **Release 1.0.0 is published (2026-08-30):** https://github.com/BwahFox/continents-of-time/releases/tag/v1.0.0 —
