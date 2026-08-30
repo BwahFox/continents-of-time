@@ -49,8 +49,8 @@ finite eras (Classic, Indev) are small islands, since that is what those worlds 
 
 ## State as of 2026-08-29 (session 4)
 
-**The layout, the oceans/seams, spawn and `/cot` are built and verified on a server; the optional client half
-(per-continent visuals) is built and harness-verified, and needs one look in a real world.**
+**The layout, the oceans/seams, spawn, `/cot` and the optional client half (per-continent visuals) are built and
+verified — the visuals by the author in the dev client ("this works", 2026-08-29). Next is the in-game pass.**
 
 - Build: `./gradlew build` (Java 25, Loom 1.17, Fabric API 0.158.0+26.2, Moderner Beta 5.0.0-alpha.3+26.2 from
   the Modrinth maven) produces `build/libs/continentsoftime-0.1.0.jar`. No Stonecutter yet (26.2 only for now).
@@ -105,8 +105,8 @@ finite eras (Classic, Indev) are small islands, since that is what those worlds 
   ARCHITECTURE.md "Per-continent visuals". Which eras get it with Moderner Beta's default config: Beta 1.1_02,
   Beta 1.7.3, Beta 1.8.1, Beta 1.9-pre3, 1.0.0, 1.1 (sky + vegetation; Pocket Edition is off in its config).
   **Verified:** `./gradlew climateTest` (routing, fallbacks, fog gate, single-era layout, payload codec round
-  trip); `./gradlew build`; dedicated server starts with the new server mixin. **Not yet verified:** the client
-  in a real world — the session's attempts to load a hand-assembled save (server `level.dat` + synthetic player
+  trip); `./gradlew build`; dedicated server starts with the new server mixin. **Verified by the author in the dev
+  client afterwards ("this works").** Earlier the session's attempts to load a hand-assembled save (server `level.dat` + synthetic player
   tag) failed (26.2 keeps world-gen settings in `<save>/data/minecraft/world_gen_settings.dat`, and even with it
   the save was corrupt); use a properly created world instead. Two bugs the failed runs still caught and fixed:
   the payload type was not registered, then registered twice.
@@ -147,15 +147,9 @@ World → World Type list** and works from there.
 
 ## Next work, in order
 
-1. **Look at the per-continent visuals in the dev client** (built in session 4, not yet seen): create a new
-   Continents of Time world, `/cot seat beta` (or `beta_1_8_1`, `release_1_1`), F3 for the coordinates; expect
-   Beta's climate grass/foliage tint and sky colour there, vanilla colouring on the modern continent and at sea,
-   and a hard change at the coast. The client log must say `client climate installed for 7 of 26 eras` on world
-   load. If grass looks vanilla on a beta continent, first suspect: Moderner Beta's `beta_climatic_colors` in
-   `run/client/config/moderner_beta.json` (vegetation/sky must be true). Then fix what the author reports.
-2. **A pass over the "things to look at in-game" list above** as the author reports them — coast-band shape,
+1. **A pass over the "things to look at in-game" list above** as the author reports them — coast-band shape,
    Legacy Console's ocean-biome land patches, finite-level surfaces, carvers over the seabed.
-3. **1.20.1 backport** — after the mod is complete (author's call).
+2. **1.20.1 backport** — after the mod is complete (author's call).
 
 ## Parked (the author's own calls, 2026-08-29 — do not pull forward)
 
