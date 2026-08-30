@@ -203,7 +203,21 @@ other mods installed (again this is for a modpack)"):
    the list; VirtualMinecraft and the parked modpack inclusions in the sibling project's plan are the obvious
    candidates). Look for: world-type list conflicts, other worldgen mods' biome/structure injection into hosted
    eras, TerraBlender-style surface-rule hooks (Moderner Beta has its own compat for that), and client-side
-   colour/fog mods fighting the per-continent visuals.
+   colour/fog mods fighting the per-continent visuals. Run server tests while the author is not playing on the
+   same machine (a dedicated server next to the client made the game lag, 2026-08-30).
+   **Done 2026-08-30 — CTOV (ChoiceTheorem's Overhauled Village), the one the author expected trouble from
+   ("CTOV villages only should spawn in areas that spawn normal villages"):** compatible by construction, verified
+   live. CTOV ships no structure sets of its own; Lithostitched `add_structure_set_entries` puts its 78 village
+   structures into vanilla's `minecraft:villages` and its outposts into `minecraft:pillager_outposts`, and the
+   atlas dates sets by id — so on a 1.20.1 server with CTOV 3.4.14 + Lithostitched 1.4.11, `/cot structures`
+   shows no village set on Alpha or Beta 1.7.3, `minecraft:villages` from Beta 1.8.1 on, outposts from 1.14, and
+   `/locate structure #ctov:village` from the modern spawn finds `ctov:large/village_plains_fortified` 384 blocks
+   away. The two jars stay in `run/1.20.1/server/mods/` (gitignored) for future compat runs; delete them to test
+   without. **Not covered:** mods that ship their *own* structure sets (Towns and Towers, Repurposed Structures,
+   YUNG's...) are "unknown" to `EraStructures` and allowed on every continent. A generic fix, if wanted: date an
+   unknown set by the vanilla structure tags its structures carry (`#minecraft:village`, `mineshaft`,
+   `shipwreck`, `ocean_ruin`, `ruined_portal`, `eye_of_ender_located` exist on both versions) plus a config map
+   for the rest — an hour's work in `EraStructures.filtered`, with a harness check on the config path.
 2. **First release** — GitHub releases only (never Modrinth), one jar per version from `./gradlew build`, with
    the README's AI disclosure; the author decides the version number and when.
 
@@ -249,6 +263,11 @@ and canyon carvers swapped in where the preset forces them, no carving at all wh
   then (1.17). Pack-glue between the two mods, not this mod's core; needs a date→version table (the timeline
   package already knows era versions), a chunk copy, and a "nearest continent of era X" query, which
   `ContinentLayout` can answer.
+- **Old textures on pre-1.14 continents** (author, 2026-08-30, "if possible"): the verdict given was "only
+  crudely" — textures cannot vary by position, so the most the client could do is auto-enable the built-in
+  Programmer Art pack when the player crosses onto a pre-1.14 continent and disable it on the way back, at the
+  cost of a full resource reload (a multi-second freeze) at every crossing. Client-only and optional if ever
+  built; the author would accept the crude version ("I don't mind") but parked it: "just ideas".
 - **Join from older game versions and spawn in that version's continent** (author, 2026-08-30, "just an idea
   for later"; Interloper-inspired): a client on, say, Beta 1.7.3 connects to the server and appears on the Beta
   1.7.3 continent. The author's pointer is what ViaVersion/ViaFabric do (protocol translation). Not this mod's
