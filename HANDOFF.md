@@ -61,6 +61,22 @@ server-side and the biomes are data-driven and synced at login. **Keep it that w
 wide; the Legacy Console seat uses the *large* preset; Skylands is seated (floating islands over open ocean);
 finite eras (Classic, Indev) are small islands, since that is what those worlds were.
 
+## State as of 2026-08-30 (session 6, later): 1.0.2 — C2ME's aquifer optimisation vs the Bedrock RNG
+
+**1.0.2 (built and verified, NOT yet released — release text needs the author's word; the draft is in the
+session notes):** the author's full-radius pregen with C2ME reached the Bedrock 1.17 continent and every chunk
+of the three Bedrock-RNG eras failed ("IllegalArgumentException at RandomUtils.getRandom"): C2ME's
+`optimizeAquifer` (default on) recognises only vanilla's two positional random factories, and those eras fork
+their aquifer random from Moderner Beta's `BedrockRandomSource`. Fixed by `mixin.AquiferSamplerProviderMixin`
+(ARCHITECTURE "Threaded world generation"): the aquifer's factory — only it — becomes a vanilla
+`LegacyRandomSource` seeded from the Bedrock one. **Mixin lesson paid for in an hour of silence: a bare
+`"<init>"` target on a class with two constructors is ambiguous and the mixin is dropped without any log line
+at INFO** — target a uniquely named method instead (here `provideAquiferSampler` HEAD; a constructor descriptor
+would have written vanilla type names into a `remap = false` mixin, which the 1.20.1 remap leaves wrong).
+Verified: Chunky r-96 runs on the bedrock_1_17, pe and bedrock_1_2 seats, zero failed chunks with
+`optimizeAquifer` on (with a DIAG build first: 578 provider constructions, every factory caught); harnesses
+green; the workaround for players on 1.0.1 is `optimizeAquifer = false` in `config/c2me.toml`.
+
 ## State as of 2026-08-30 (session 6): 1.0.1 — safe under C2ME's threaded worldgen
 
 **Release 1.0.1 is published (2026-08-30):** https://github.com/BwahFox/continents-of-time/releases/tag/v1.0.1 — both jars, CHANGELOG's notes.

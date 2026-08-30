@@ -199,8 +199,9 @@ offsets; the noise provider's world-border tests (`skipChunk`, `modifyEdgeDensit
 two surface passes); the fractal biome provider's lookups; and the biome injector's out-of-bounds predicate.
 `HostedEra.footprint` reports such eras as `finite` (the level's size, unshaped) or `bordered` (the border's
 width, shaped), the layout snaps their seats to chunk boundaries, and `HostedEra.translateTo` sets the
-offsets at server start. These mixins are the one place this mod reaches into Moderner Beta's internals; the
-version is pinned, and the targets are listed in each mixin's comment.
+offsets at server start. These mixins, plus the one aquifer mixin under "Threaded world generation", are the only
+places this mod reaches into Moderner Beta's internals; the version is pinned, and the targets are listed in each
+mixin's comment.
 
 ## Per-continent visuals (built 2026-08-29, client-side and optional)
 
@@ -357,6 +358,14 @@ shared-by-assumption objects safe rather than locking the world:
   therefore serialised across the atlas (`SURFACE_LOCK`), ocean chunks included, so the context is constant for a
   whole chunk. The step is a small share of a chunk's work; noise, biomes, carving and decoration still run in
   parallel — measured at ~3× single-threaded throughput on eight cores.
+
+- **C2ME's aquifer optimisation (1.0.2).** Not a race but the same family: C2ME's `optimizeAquifer` (on by
+  default) replaces the aquifer's random and recognises only vanilla's two positional factories — it throws on
+  any other. Moderner Beta's Pocket/Bedrock presets fork the aquifer random from its own `BedrockRandomSource`,
+  so every chunk of those three continents failed under C2ME. `mixin.AquiferSamplerProviderMixin` swaps that one
+  factory for a vanilla `LegacyRandomSource` seeded from it, in `AquiferSamplerProvider`'s constructor; the
+  terrain, caves and surface of those eras keep the Bedrock RNG. Deterministic in the seed, and applied whether
+  or not C2ME is present, so a seed generates the same world either way.
 
 Everything else the atlas holds is already thread-aware: `ContinentLayout`'s far seats and chunk cache are
 concurrent maps, and Moderner Beta's providers guard their own noise caches with a `StampedLock`.

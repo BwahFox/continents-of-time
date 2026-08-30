@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.2 — 2026-08-30
+
+- **C2ME's aquifer optimisation no longer fails the Pocket and Bedrock continents.** Those eras fork their
+  aquifer random from Moderner Beta's own Bedrock random source, a type C2ME's `optimizeAquifer` (on by default)
+  does not recognise, so every one of their chunks failed to generate under C2ME. The aquifer — and only the
+  aquifer — of those eras now uses vanilla's legacy random, seeded from the era's own; terrain, caves and surface
+  are untouched. Found on a full-radius pregeneration the moment it reached a Bedrock continent.
+
 ## 1.0.1 — 2026-08-30
 
 - **Threaded world generation (C2ME) no longer corrupts chunks.** Two races, both in how the atlas drives many

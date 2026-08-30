@@ -3,6 +3,7 @@
 	"package": "dev.continentsoftime.mixin",
 	"compatibilityLevel": "JAVA_${java_version}",
 	"mixins": [
+		"AquiferSamplerProviderMixin",
 		"BiomeProviderFractalMixin",
 		"BiomeProviderMixin",
 		"ChunkProviderFiniteMixin",
