@@ -138,8 +138,10 @@ the whole world. After an era fills a chunk, `AtlasChunkGenerator.shapeCoast` cl
 block into its band (cut down to water or air, or filled up with stone), floods any air below the waterline
 and removes era water above it (Moderner Beta presets put their sea at 64). An ocean chunk and an era chunk
 therefore meet at exactly the same seabed height, and an era's terrain eases down to the shoreline instead of
-ending in a wall. Eras whose own sea is far below ours (Skylands, sea level 0) get the deep seabed under
-everything and are never clipped.
+ending in a wall. Eras whose own sea is far below ours (Skylands, sea level 0) are **lifted** instead — the whole
+column moved up so the era's sea level lands one block above ours (64 blocks for Skylands), then the deep seabed,
+water and a bedrock floor go under everything; islands float over open sea and are never clipped.
+`getBaseHeight`/`getBaseColumn` apply the same lift.
 
 **Biomes at sea.** The ocean simply stops at the coast (author's call): sea columns inside an era chunk are
 painted with the modern ocean at the surface step — before the era's surface rules run, so they dress the

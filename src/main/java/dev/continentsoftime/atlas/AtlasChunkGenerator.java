@@ -62,6 +62,7 @@ public class AtlasChunkGenerator extends NoiseBasedChunkGenerator {
 	private static final BlockState STONE = Blocks.STONE.defaultBlockState();
 	private static final BlockState WATER = Blocks.WATER.defaultBlockState();
 	private static final BlockState AIR = Blocks.AIR.defaultBlockState();
+	private static final BlockState BEDROCK = Blocks.BEDROCK.defaultBlockState();
 
 	private final AtlasBiomeSource atlas;
 	private Seabed seabed;
@@ -183,13 +184,24 @@ public class AtlasChunkGenerator extends NoiseBasedChunkGenerator {
 		}
 	}
 
+	/**
+	 * How far up a hosted era's terrain is moved: zero for every era whose sea roughly matches ours; for an era
+	 * whose sea is far below (Skylands, sea level 0), enough to put its sea level one block above ours, so its
+	 * floating islands hang over open water instead of sitting in it.
+	 */
+	private int lift(HostedEra era) {
+		int eraSea = era.generator().getSeaLevel();
+		return eraSea < getSeaLevel() - 8 ? getSeaLevel() + 1 - eraSea : 0;
+	}
+
 	@Override
 	public int getBaseHeight(int x, int z, Heightmap.Types type, LevelHeightAccessor level, RandomState randomState) {
 		if (atlas.isSea(x, z)) {
 			int floor = seabed.floor(x, z, atlas.layout().fieldAt(x, z));
 			return (type == Heightmap.Types.OCEAN_FLOOR || type == Heightmap.Types.OCEAN_FLOOR_WG ? floor : getSeaLevel()) + 1;
 		}
-		return atlas.eraAtBlock(x, z).generator().getBaseHeight(x, z, type, level, randomState);
+		HostedEra era = atlas.eraAtBlock(x, z);
+		return era.generator().getBaseHeight(x, z, type, level, randomState) + lift(era);
 	}
 
 	@Override
@@ -204,7 +216,19 @@ public class AtlasChunkGenerator extends NoiseBasedChunkGenerator {
 			}
 			return new NoiseColumn(minY, column);
 		}
-		return atlas.eraAtBlock(x, z).generator().getBaseColumn(x, z, level, randomState);
+		HostedEra era = atlas.eraAtBlock(x, z);
+		NoiseColumn column = era.generator().getBaseColumn(x, z, level, randomState);
+		int lift = lift(era);
+		if (lift == 0) {
+			return column;
+		}
+		int minY = level.getMinY();
+		BlockState[] lifted = new BlockState[level.getHeight()];
+		for (int i = 0; i < lifted.length; i++) {
+			int from = minY + i - lift;
+			lifted[i] = from >= minY ? column.getBlock(from) : (minY + i <= getSeaLevel() ? WATER : AIR);
+		}
+		return new NoiseColumn(minY, lifted);
 	}
 
 	@Override
@@ -246,10 +270,13 @@ public class AtlasChunkGenerator extends NoiseBasedChunkGenerator {
 		int seaLevel = getSeaLevel();
 		int minY = chunk.getMinY();
 		int maxY = minY + chunk.getHeight() - 1;
-		// An era whose own sea is far below ours has nothing under its land (Skylands): give it the seabed everywhere, never clip.
-		boolean skyOcean = owner.generator().getSeaLevel() < seaLevel - 8;
+		// An era whose own sea is far below ours has nothing under its land (Skylands): lift it clear of the water,
+		// give it the seabed everywhere, never clip.
+		int lift = lift(owner);
+		boolean skyOcean = lift > 0;
 		BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
 		boolean touched = false;
+		BlockState[] column = skyOcean ? new BlockState[chunk.getHeight()] : null;
 
 		for (int dx = 0; dx < 16; dx++) {
 			for (int dz = 0; dz < 16; dz++) {
@@ -259,15 +286,30 @@ public class AtlasChunkGenerator extends NoiseBasedChunkGenerator {
 				if (!skyOcean && Seabed.inland(field)) {
 					continue;
 				}
-				int lower;
-				int upper;
 				if (skyOcean) {
-					lower = seabed.floor(x, z, Math.min(field, Seabed.DEEP_FIELD));
-					upper = maxY;
-				} else {
-					lower = seabed.lowerBound(x, z, field);
-					upper = seabed.upperBound(x, z, field);
+					// Move the whole column up by the lift; what was above the top falls off, the bottom becomes air.
+					for (int y = minY; y <= maxY; y++) {
+						column[y - minY] = chunk.getBlockState(cursor.set(x, y, z));
+					}
+					for (int y = maxY; y >= minY; y--) {
+						int from = y - lift;
+						chunk.setBlockState(cursor.set(x, y, z), from >= minY ? column[from - minY] : AIR, 0);
+					}
+					touched = true;
 				}
+				if (skyOcean) {
+					// The seabed and the sea go under everything, islands included; nothing above them is touched.
+					int floor = seabed.floor(x, z, Math.min(field, Seabed.DEEP_FIELD));
+					for (int y = minY; y <= seaLevel; y++) {
+						BlockState state = chunk.getBlockState(cursor.set(x, y, z));
+						if (state.isAir() || !state.getFluidState().isEmpty()) {
+							chunk.setBlockState(cursor, y == minY ? BEDROCK : y <= floor ? STONE : WATER, 0);
+						}
+					}
+					continue;
+				}
+				int lower = seabed.lowerBound(x, z, field);
+				int upper = seabed.upperBound(x, z, field);
 
 				int top = minY - 1;
 				for (int y = maxY; y >= minY; y--) {
@@ -299,12 +341,10 @@ public class AtlasChunkGenerator extends NoiseBasedChunkGenerator {
 						touched = true;
 					}
 				}
-				if (!skyOcean) {
-					for (int y = Math.max(top + 1, seaLevel + 1); y <= seaLevel + 2; y++) {
-						if (!chunk.getBlockState(cursor.set(x, y, z)).getFluidState().isEmpty()) {
-							chunk.setBlockState(cursor, AIR, 0);
-							touched = true;
-						}
+				for (int y = Math.max(top + 1, seaLevel + 1); y <= seaLevel + 2; y++) {
+					if (!chunk.getBlockState(cursor.set(x, y, z)).getFluidState().isEmpty()) {
+						chunk.setBlockState(cursor, AIR, 0);
+						touched = true;
 					}
 				}
 			}

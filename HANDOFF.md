@@ -72,13 +72,17 @@ finite eras (Classic, Indev) are small islands, since that is what those worlds 
   51 by x 3344 with `minecraft:ocean`; deep ocean at x 6000 — floor y 19, water to 63; Infdev 227 coast at
   x 8976 — seabed rising to the shoreline, Infdev land beyond; Classic 0.0.14a seat (box x 5744..6000,
   z -9440..-9184) — its level's terrain (y 62..77) and its own biome across the box, modern ocean around it;
-  Legacy Console seat — forest/plains land inside its box, ocean outside; Skylands seat — deep seabed under the
-  sky islands. No generation exceptions.
+  Legacy Console seat — forest/plains land inside its box, ocean outside; Skylands seat — lifted 64 blocks after
+  the author saw the islands half-drowned in the dev client ("more like islands"): full-column dumps show
+  bedrock/stone seabed to ~y 18, water to 63, air, islands at y 86..137. No generation exceptions. The author
+  looked at the rest in the dev client: "everything seems to be working".
 - **Things to look at in-game (not verified visually yet):** the coast band's shape (era terrain higher than
   the shoreline is cut along a quadratic rise; era terrain lower — an era's own sea at the layout coast — is
   filled up to a sandbar at the shoreline); Legacy Console shows ocean-biome patches on land inside its box
   (x -42340..-41560 at z 80976 for seed 20260829), possibly its own height-based biome injection interacting
-  with the translated border — decide after seeing it; finite levels' surfaces after the coast clamp.
+  with the translated border — decide after seeing it; finite levels' surfaces after the coast clamp; era
+  carvers run over the seabed fill in coastal era chunks (small underwater cave pockets seen in a Skylands
+  column at y 12..14) — harmless, could be masked by skipping carvers below the seabed.
 - **Lesson from this session:** chunks generated in an earlier run stay on disk — the chunk pyramid pre-generates
   a radius around every loaded chunk — so a fix can look intermittent when re-probed on a used world. Verify
   on fresh chunks or a fresh world.
