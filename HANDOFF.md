@@ -252,7 +252,10 @@ other mods installed (again this is for a modpack)"):
    shows no village set on Alpha or Beta 1.7.3, `minecraft:villages` from Beta 1.8.1 on, outposts from 1.14, and
    `/locate structure #ctov:village` from the modern spawn finds `ctov:large/village_plains_fortified` 384 blocks
    away. The two jars stay in `run/1.20.1/server/mods/` (gitignored) for future compat runs; delete them to test
-   without. **Not covered:** mods that ship their *own* structure sets (Towns and Towers, Repurposed Structures,
+   without.
+   **Tested by the author in play (2026-08-30, on 1.0.2): VirtualMinecraft, Voxy, Chunky, C2ME — all behave
+   with no changes on the player's side** (the C2ME config workaround from 1.0.1 is no longer needed; 1.0.2's
+   aquifer mixin covers it). **Not covered:** mods that ship their *own* structure sets (Towns and Towers, Repurposed Structures,
    YUNG's...) are "unknown" to `EraStructures` and allowed on every continent. A generic fix, if wanted: date an
    unknown set by the vanilla structure tags its structures carry (`#minecraft:village`, `mineshaft`,
    `shipwreck`, `ocean_ruin`, `ruined_portal`, `eye_of_ender_located` exist on both versions) plus a config map
