@@ -4,8 +4,10 @@ import dev.continentsoftime.atlas.AtlasBiomeSource;
 import dev.continentsoftime.atlas.AtlasChunkGenerator;
 import dev.continentsoftime.command.CotCommand;
 import dev.continentsoftime.config.ContinentsConfig;
+import dev.continentsoftime.network.AtlasInfoPayload;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
@@ -30,6 +32,8 @@ public final class ContinentsOfTime implements ModInitializer {
 		Registry.register(BuiltInRegistries.BIOME_SOURCE, id("atlas"), AtlasBiomeSource.CODEC);
 		ServerLifecycleEvents.SERVER_STARTING.register(ContinentsOfTime::initWorlds);
 		CotCommand.register();
+		// The atlas description a modded client can ask for; vanilla clients never register the channel and get nothing.
+		PayloadTypeRegistry.clientboundPlay().register(AtlasInfoPayload.TYPE, AtlasInfoPayload.CODEC);
 
 		ContinentsConfig config = ContinentsConfig.get();
 		LOGGER.info("Continents of Time: {} eras in the roster, continents up to {} blocks, oceans at least {} blocks",

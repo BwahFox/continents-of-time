@@ -10,7 +10,14 @@
 		"ChunkProviderNoise3DMixin",
 		"ChunkProviderNoiseAccessor",
 		"ChunkProviderNoiseMixin",
-		"OutOfBoundsInjectionPredicateMixin"
+		"OutOfBoundsInjectionPredicateMixin",
+		"PlayerListMixin"
+	],
+	"client": [
+		"client.AtmosphericFogEnvironmentMixin",
+		"client.EnvironmentAttributeSystemMixin",
+		"client.FoliageTintSourceMixin",
+		"client.GrassBlockTintSourceMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

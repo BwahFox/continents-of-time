@@ -45,9 +45,10 @@ server-side and the biomes are data-driven and synced at login. **Keep it that w
 wide; the Legacy Console seat uses the *large* preset; Skylands is seated (floating islands over open ocean);
 finite eras (Classic, Indev) are small islands, since that is what those worlds were.
 
-## State as of 2026-08-29 (session 3, continued)
+## State as of 2026-08-29 (session 4)
 
-**The layout and the oceans/seams are built and verified on a server; spawn and a first client look are next.**
+**The layout, the oceans/seams, spawn and `/cot` are built and verified on a server; the optional client half
+(per-continent visuals) is built and harness-verified, and needs one look in a real world.**
 
 - Build: `./gradlew build` (Java 25, Loom 1.17, Fabric API 0.158.0+26.2, Moderner Beta 5.0.0-alpha.3+26.2 from
   the Modrinth maven) produces `build/libs/continentsoftime-0.1.0.jar`. No Stonecutter yet (26.2 only for now).
@@ -93,6 +94,20 @@ finite eras (Classic, Indev) are small islands, since that is what those worlds 
   and box, `/cot where` says who owns the chunk you stand in plus the coast field and the nearest continent,
   `/cot seat <era>` teleports you onto that era's continent at its centre (operator level 2; the era argument
   tab-completes from the roster). Verified over RCON except the teleport, which needs a player.
+- **Per-continent visuals (session 4):** the optional client half. The server sends `continentsoftime:atlas_info`
+  (seed, sizes, footprints, and the climate-sampling eras' biome settings) with every level info, only to clients
+  that registered the channel; a client with the mod rebuilds the layout and those eras' Moderner Beta biome
+  providers, and a composite `ContinentClimate` routes Moderner Beta's grass/foliage tints, sky colour and old fog
+  weighting to the era that owns the column, vanilla everywhere else (modern continent, open sea, eras without a
+  climate). Design, what is deliberately not done (water tint, climate precipitation), and why:
+  ARCHITECTURE.md "Per-continent visuals". Which eras get it with Moderner Beta's default config: Beta 1.1_02,
+  Beta 1.7.3, Beta 1.8.1, Beta 1.9-pre3, 1.0.0, 1.1 (sky + vegetation; Pocket Edition is off in its config).
+  **Verified:** `./gradlew climateTest` (routing, fallbacks, fog gate, single-era layout, payload codec round
+  trip); `./gradlew build`; dedicated server starts with the new server mixin. **Not yet verified:** the client
+  in a real world — the session's attempts to load a hand-assembled save (server `level.dat` + synthetic player
+  tag) failed (26.2 keeps world-gen settings in `<save>/data/minecraft/world_gen_settings.dat`, and even with it
+  the save was corrupt); use a properly created world instead. Two bugs the failed runs still caught and fixed:
+  the payload type was not registered, then registered twice.
 - **Lesson from this session:** chunks generated in an earlier run stay on disk — the chunk pyramid pre-generates
   a radius around every loaded chunk — so a fix can look intermittent when re-probed on a used world. Verify
   on fresh chunks or a fresh world.
@@ -110,6 +125,9 @@ harness's "crossings" lines. The `run/` directory is gitignored; reuse the world
 previously generated chunks stay as they were — verify fixes on fresh chunks (delete the world if needed; it
 is ~10 MB).
 
+**Climate harness:** `./gradlew climateTest` (`-Pseeds=...`) — the client's composite climate over a real layout
+with stub era samplers, plus the `atlas_info` payload codec round trip. ~2 s (it bootstraps vanilla's registries).
+
 **Layout harness:** `./gradlew layoutTest` (`-Pseeds=1,2,3` to choose seeds; ~16 s per seed) — assertions plus
 `build/layout/<seed>.png` (whole atlas, 32 blocks/pixel) and `<seed>-home.png` (home continent, 8 blocks/pixel).
 
@@ -122,10 +140,12 @@ World → World Type list** and works from there.
 
 ## Next work, in order
 
-1. **Per-continent visuals** — Moderner Beta's old fog/sky/grass colouring is a per-level flag that the atlas
-   turns off everywhere; a composite climate sampler would bring it back per continent. Study pass first: how
-   Moderner Beta flags a level as "modded" and where its climate sampler is consulted client-side. Client-only
-   and optional: a vanilla client must still be able to join (see the spec).
+1. **Look at the per-continent visuals in the dev client** (built in session 4, not yet seen): create a new
+   Continents of Time world, `/cot seat beta` (or `beta_1_8_1`, `release_1_1`), F3 for the coordinates; expect
+   Beta's climate grass/foliage tint and sky colour there, vanilla colouring on the modern continent and at sea,
+   and a hard change at the coast. The client log must say `client climate installed for 7 of 25 eras` on world
+   load. If grass looks vanilla on a beta continent, first suspect: Moderner Beta's `beta_climatic_colors` in
+   `run/client/config/moderner_beta.json` (vegetation/sky must be true). Then fix what the author reports.
 2. **A pass over the "things to look at in-game" list above** as the author reports them — coast-band shape,
    Legacy Console's ocean-biome land patches, finite-level surfaces, carvers over the seabed.
 3. **1.20.1 backport** — after the mod is complete (author's call).

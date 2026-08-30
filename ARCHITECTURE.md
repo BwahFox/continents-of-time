@@ -47,8 +47,9 @@ Facts that shaped the design:
   the finite ones alone.
 - **Per-level state.** Moderner Beta flags a `ServerLevel` as "modded" (old fog, sky and grass colouring, climate
   sampling for temperature) only when the level's generator *is* `ModernBetaChunkGenerator`. With the atlas in
-  front, no level is flagged, so those level-wide visuals are off everywhere. Making them per-continent is a later,
-  client-side job (a composite climate sampler); noted, not started.
+  front, no level is flagged, so those level-wide visuals are off everywhere. The client-side ones are brought back
+  per continent by this mod's optional client half (see "Per-continent visuals"); the server-side ones (precipitation
+  and snow/ice by sampled climate) stay vanilla, driven by the biomes' own data.
 - **Surface rules** flow through a Moderner Beta mixin on vanilla's `SurfaceSystem`, keyed per chunk by the provider
   it is given (`modernerBeta$setupChunkContext`). Delegating `buildSurface` to the hosted generator keeps that
   working unchanged.
@@ -75,6 +76,9 @@ Facts that shaped the design:
 - `atlas.layout.Seabed` — the ocean floor and the coast band as functions of the coast field.
 - `command.CotCommand` — `/cot seats | where | seat <era>`: the seat table, what the atlas thinks of where you
   stand, and a teleport onto any era's continent. Operator level 2.
+- `network.AtlasInfoPayload` and `mixin.PlayerListMixin` — the server's description of an atlas level for a client
+  that has this mod (seed, sizes, footprints, and the climate-sampling eras' biome settings), sent with every level
+  info; `client.*` and `mixin.client.*` — the optional client half (see "Per-continent visuals").
 - `atlas.HostedEra` — builds an era's generator + biome source from an id: `minecraft:*` ids are vanilla
   noise-settings presets over the overworld multi-noise biome source; anything else is a Moderner Beta settings
   preset.
@@ -165,7 +169,54 @@ width, shaped), the layout snaps their seats to chunk boundaries, and `HostedEra
 offsets at server start. These mixins are the one place this mod reaches into Moderner Beta's internals; the
 version is pinned, and the targets are listed in each mixin's comment.
 
+## Per-continent visuals (built 2026-08-29, client-side and optional)
+
+**What Moderner Beta does on its own.** Its visuals are a client-side pipeline over ONE climate sampler: on every
+level info (`PlayerList.sendLevelInfo`: join, respawn, dimension change) the server sends `BiomeProviderInfoPayload`
+(is this a Moderner Beta level; the biome provider's id, settings NBT and seed); the client rebuilds that biome
+provider locally and, if it is a `ClimateSampler`, installs it in two static singletons — `BlockColorSampler`
+(grass, foliage and water tints, through block tint sources it registers for the vanilla blocks) and
+`SkyColorSampler` (an `EnvironmentAttributeSystem` positional layer over the biome sky colour) — and marks the
+`ClientLevel` "modded" (old fog colour weighting, precipitation by sampled climate). All of it samples by block
+`(x, z)`. Only the Beta (`moderner_beta:beta`), Beta-fractal and Pocket Edition biome providers sample a climate;
+the `single` provider (Classic through Alpha, Skylands) and the plain fractal biome maps (1.2.5 onward, Bedrock,
+Legacy Console) do not, so on their own those eras have vanilla colouring anyway. Whether to tint at all is the
+player's Moderner Beta config (`beta_climatic_colors` etc.: sky and vegetation on, water off by default).
+
+On an atlas the generator is not Moderner Beta's, so that payload says "not a Moderner Beta level" and the
+pipeline is idle. The server never needs a client for anything: a vanilla client joins and sees vanilla colours.
+
+**What the atlas adds.** The same idea for a roster, with one composite sampler in place of one provider:
+
+- `AtlasInfoPayload` (`continentsoftime:atlas_info`): the seed, the layout sizes and home index, every era's
+  footprint, and the biome settings NBT of every era whose provider samples a climate. `PlayerListMixin` sends it at
+  the tail of `sendLevelInfo` — after Moderner Beta's own payload has reset the client's samplers for the level —
+  and only to clients that registered the channel. A non-atlas level sends an empty roster.
+- `client.ClientAtlas` rebuilds the `ContinentLayout` from the seed and footprints (it is deterministic and
+  Minecraft-free, so the client gets the identical map), builds each climate era's biome provider the way Moderner
+  Beta builds its one (same settings, same seed; anchored ones translated to their seats), and installs a
+  `client.ContinentClimate` in both singletons.
+- `ContinentClimate` implements `ClimateSampler` and `ClimateSamplerSky`: every sample goes to the era that owns
+  the column; columns outside any climate era get the vanilla biome's own temperature and downfall (what the
+  colormaps would read anyway). Moderner Beta's "tint at all?" flags are not positional, so the composite says yes
+  for vegetation whenever any era would, and four small client mixins make the decision per column:
+  `GrassBlockTintSourceMixin` and `FoliageTintSourceMixin` (Moderner Beta's tint sources; outside a climate era they
+  return vanilla's blended biome colour, exactly Moderner Beta's own off-path), `EnvironmentAttributeSystemMixin`
+  (the atlas's own positional sky layer, next to Moderner Beta's, which stays inert because the composite reports no
+  sky colouring), and `AtmosphericFogEnvironmentMixin` (Moderner Beta's old fog weighting when the camera stands on
+  any Moderner Beta continent, honouring its config switch; the modern continent and the open sea keep vanilla's).
+  The gates mean the modern continent keeps vanilla's biome-blended grass, which a single global flag would lose.
+- `./gradlew climateTest` checks the routing headlessly with stub era samplers over a real layout, plus the
+  payload codec round trip.
+
+Not done, and why: **water tint** stays vanilla everywhere (Moderner Beta's default is off, and its water paths have
+no positional hook short of two more mixins); **precipitation and snow/ice by sampled climate** stay vanilla (the
+"modded level" flag drives them level-wide on both sides, and the sampler's height scaling is per provider); the
+**climate distribution** flags are not positional either (fuzzy grass if any era wants it; smooth borders only if
+every climate era does). Debug text: Moderner Beta's F3 entries read its own level state, so they stay silent on an
+atlas; `/cot where` is the atlas's own.
+
 ## Not yet built
 
-Spawn on the home continent (the origin is guaranteed land, so vanilla's search should already succeed —
-verify), a first look from a client, per-continent visuals. See HANDOFF.md "Next work".
+The in-game checks listed in HANDOFF.md ("things to look at"), water tint and climate precipitation per continent
+(above), the 1.20.1 backport. See HANDOFF.md "Next work".

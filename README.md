@@ -8,8 +8,10 @@ your feet, the horizon starts rolling the way it used to, and the world you knew
 
 **Status: early development.** The continent layout, the oceans between continents and the coasts are built
 and verified on a server (every era seated from the seed, modern ocean between, terrain eased under the water at
-each coast, finite and bordered eras relocated to their seats). Spawn and a first proper look from a client are
-the current work. Nothing is playable in the intended sense yet.
+each coast, finite and bordered eras relocated to their seats), and players spawn on the modern continent.
+Everything is generated server-side, so **a vanilla client can join a server running the mod**; installing the
+mod on the client too is optional and adds per-continent visuals (an era's own grass, foliage and sky colouring,
+and its old fog, where Moderner Beta has them). Nothing is playable in the intended sense yet.
 
 ## Plans
 

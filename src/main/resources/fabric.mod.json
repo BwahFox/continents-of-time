@@ -16,6 +16,9 @@
 	"entrypoints": {
 		"main": [
 			"dev.continentsoftime.ContinentsOfTime"
+		],
+		"client": [
+			"dev.continentsoftime.client.ContinentsOfTimeClient"
 		]
 	},
 	"accessWidener": "continentsoftime.accesswidener",

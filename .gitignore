@@ -24,3 +24,6 @@ private/
 
 # Loom's generated dev access widener / remap scratch
 .loom/
+
+# Vanilla log written by the climate harness (it bootstraps the game registries in the project dir)
+/logs/

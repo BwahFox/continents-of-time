@@ -44,6 +44,18 @@ tasks.register("layoutTest", JavaExec) {
 	}
 }
 
+// Climate harness: the client's composite climate sampler over the layout, checked with stub era samplers.
+tasks.register("climateTest", JavaExec) {
+	group = "verification"
+	description = "Checks the client's per-continent climate routing headlessly (stub samplers, real layout, payload codec)."
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = "dev.continentsoftime.climate.ClimateHarness"
+	workingDir = projectDir
+	if (project.hasProperty("seeds")) {
+		systemProperty "seeds", project.property("seeds")
+	}
+}
+
 loom {
 	accessWidenerPath = file("src/main/resources/continentsoftime.accesswidener")
 
