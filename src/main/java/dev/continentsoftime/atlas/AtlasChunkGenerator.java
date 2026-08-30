@@ -141,11 +141,17 @@ public class AtlasChunkGenerator extends NoiseBasedChunkGenerator {
 		});
 	}
 
-	/** The structure sets that can place on an era's continent (the ocean era's for {@code null}), for {@code /cot structures}. */
-	public List<Identifier> structureSetsFor(@Nullable HostedEra era) {
+	/**
+	 * The structure sets that can place on an era's continent (the ocean era's for {@code null}), named for
+	 * {@code /cot structures}: registered sets by id; a generator's own inline set (Moderner Beta's preset overrides,
+	 * such as its ocean shrine or Legacy Console's stronghold rings) by the structures in it.
+	 */
+	public List<String> structureSetsFor(@Nullable HostedEra era) {
 		return stateFor(era).possibleStructureSets().stream()
-			.map(holder -> holder.unwrapKey().map(ResourceKey::identifier).map(Identifier::toString).orElse("(inline: " + holder.value().structures().size() + " structure(s))"))
-			.map(Identifier::tryParse).filter(java.util.Objects::nonNull)
+			.map(holder -> holder.unwrapKey().map(key -> key.identifier().toString()).orElseGet(() ->
+				holder.value().structures().stream()
+					.map(entry -> entry.structure().unwrapKey().map(key -> key.identifier().toString()).orElse("?"))
+					.collect(java.util.stream.Collectors.joining("+")) + " (override)"))
 			.toList();
 	}
 

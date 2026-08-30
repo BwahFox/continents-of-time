@@ -126,10 +126,10 @@ public final class CotCommand {
 			return 0;
 		}
 		HostedEra era = atlas.atlas().eras().get(index);
-		List<Identifier> sets = atlas.structureSetsFor(era);
+		List<String> sets = atlas.structureSetsFor(era);
 		String accuracy = atlas.atlas().settings().eraAccurateStructures() ? "era-accurate" : "all versions";
 		source.sendSuccess(() -> Component.literal(String.format("%s (%s, %s): %d structure set(s): %s", eraId,
-			EraVersion.of(eraId), accuracy, sets.size(), sets.stream().map(Identifier::toString).sorted().collect(Collectors.joining(", ")))), false);
+			EraVersion.of(eraId), accuracy, sets.size(), sets.stream().sorted().collect(Collectors.joining(", ")))), false);
 		return sets.size();
 	}
 
