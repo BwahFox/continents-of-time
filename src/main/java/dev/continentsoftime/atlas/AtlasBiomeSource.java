@@ -2,6 +2,9 @@ package dev.continentsoftime.atlas;
 
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import dev.continentsoftime.ContinentsOfTime;
+import dev.continentsoftime.atlas.layout.ContinentLayout;
+import dev.continentsoftime.atlas.layout.Footprint;
 import dev.continentsoftime.atlas.layout.Layout;
 import mod.bluestaggo.modernerbeta.registry.ModernBetaResourceKeys;
 import mod.bluestaggo.modernerbeta.util.CodecUtil;
@@ -55,18 +58,40 @@ public class AtlasBiomeSource extends BiomeSource {
 		return layout;
 	}
 
-	/** Server start: create every era's providers for this seed and fix the layout. */
+	/** Server start: create every era's providers for this seed, then lay the continents out. */
 	public void init(long seed) {
 		eras.forEach(era -> era.init(seed));
-		this.layout = eras.size() == 1 ? Layout.single() : Layout.single(); // the real layout lands with the atlas milestone
+		if (eras.size() == 1) {
+			this.layout = Layout.single();
+			return;
+		}
+		List<Footprint> footprints = eras.stream().map(era -> era.footprint(settings.maxContinentSize())).toList();
+		ContinentLayout continents = new ContinentLayout(seed, footprints, homeEra(), settings.maxContinentSize(), settings.oceanWidth());
+		ContinentsOfTime.LOGGER.info("Continents of Time layout: {}", continents.describe());
+		for (var seat : continents.seats()) {
+			ContinentsOfTime.LOGGER.info("  {} in x {}..{}, z {}..{}{}", eras.get(seat.era()).id(),
+				seat.minX(), seat.maxX(), seat.minZ(), seat.maxZ(), seat.shaped() ? "" : " (finite level)");
+		}
+		this.layout = continents;
 	}
 
+	/** The era whose continent holds the origin: the modern generator if it is on the roster, else the first era. */
+	public int homeEra() {
+		int index = settings.eras().indexOf(Eras.MODERN);
+		return index < 0 ? 0 : index;
+	}
+
+	/**
+	 * The era that generates the column. Ownership is per chunk (every generation step of a chunk goes to one
+	 * hosted generator), so this is the owner of the chunk the column is in; open ocean belongs to the nearest
+	 * continent's era until the atlas generates oceans itself.
+	 */
 	public HostedEra eraAtBlock(int blockX, int blockZ) {
-		return eras.get(layout.eraAt(blockX, blockZ));
+		return eraAtChunk(blockX >> 4, blockZ >> 4);
 	}
 
 	public HostedEra eraAtChunk(int chunkX, int chunkZ) {
-		return eraAtBlock((chunkX << 4) + 8, (chunkZ << 4) + 8);
+		return eras.get(layout.chunkOwner(chunkX, chunkZ));
 	}
 
 	@Override
@@ -87,7 +112,8 @@ public class AtlasBiomeSource extends BiomeSource {
 	@Override
 	public void addDebugInfo(List<String> lines, BlockPos pos, Climate.Sampler sampler) {
 		HostedEra era = eraAtBlock(pos.getX(), pos.getZ());
-		lines.add("Continents of Time era: " + era.id());
+		int column = layout.eraAt(pos.getX(), pos.getZ());
+		lines.add("Continents of Time era: " + era.id() + (column == Layout.OCEAN ? " (ocean)" : ""));
 		era.biomeSource().addDebugInfo(lines, pos, sampler);
 	}
 }

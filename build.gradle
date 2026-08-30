@@ -31,6 +31,19 @@ tasks.named("test") {
 	failOnNoDiscoveredTests = false
 }
 
+// Layout harness: builds the atlas layout for a few seeds, asserts its guarantees, writes build/layout/<seed>.png.
+// `./gradlew layoutTest -Pseeds=1,2,3` picks the seeds.
+tasks.register("layoutTest", JavaExec) {
+	group = "verification"
+	description = "Checks the continent layout headlessly (determinism, extents, gaps, every era seated) and renders maps."
+	classpath = sourceSets.test.runtimeClasspath
+	mainClass = "dev.continentsoftime.layout.LayoutHarness"
+	workingDir = projectDir
+	if (project.hasProperty("seeds")) {
+		systemProperty "seeds", project.property("seeds")
+	}
+}
+
 loom {
 	accessWidenerPath = file("src/main/resources/continentsoftime.accesswidener")
 

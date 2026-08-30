@@ -1,5 +1,7 @@
 package dev.continentsoftime.atlas;
 
+import dev.continentsoftime.atlas.layout.Footprint;
+import mod.bluestaggo.modernerbeta.api.level.chunk.ChunkProviderFinite;
 import mod.bluestaggo.modernerbeta.api.level.chunk.surface.SurfaceConfig;
 import mod.bluestaggo.modernerbeta.level.biome.ModernBetaBiomeSource;
 import mod.bluestaggo.modernerbeta.level.chunk.ModernBetaChunkGenerator;
@@ -65,5 +67,16 @@ public record HostedEra(Identifier id, ChunkGenerator generator, BiomeSource bio
 		if (generator instanceof ModernBetaChunkGenerator mb) {
 			mb.initProvider(seed);
 		}
+	}
+
+	/**
+	 * What the layout needs to seat this era. Finite eras (Classic, Indev) are their level's own size and are
+	 * seated as-is; every other era is shaped inside a box of the configured maximum. Valid after {@link #init}.
+	 */
+	public Footprint footprint(int maxContinentSize) {
+		if (generator instanceof ModernBetaChunkGenerator mb && mb.getChunkProvider() instanceof ChunkProviderFinite finite) {
+			return Footprint.finite(finite.getLevelWidth(), finite.getLevelLength());
+		}
+		return Footprint.shaped(maxContinentSize);
 	}
 }

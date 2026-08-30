@@ -75,12 +75,53 @@ Facts that shaped the design:
 - `atlas.AtlasSettings` — the roster, `max_continent_size`, `ocean_width`; fields missing from a world preset's
   JSON default to the config file at creation time and are then stored explicitly in level.dat.
 - `atlas.Eras` — the default roster (25 eras).
-- `atlas.layout.Layout` — `eraAt(blockX, blockZ)`. Today only `Layout.single()`.
+- `atlas.layout.Layout` — `eraAt(blockX, blockZ)` (an era index or `OCEAN`), `nearestEraAt`, and `chunkOwner`:
+  ownership is decided once per chunk by its centre column, because every generation step of a chunk must go
+  to one hosted generator. `Layout.single()` is one era everywhere (verification worlds).
+- `atlas.layout.ContinentLayout` — the real layout, built from the seed at server start (see below).
+  `Footprint` is what it knows about an era before seating it (box size cap; shaped or finite); `Seat` is where
+  an era ended up. `Noise` is a small seeded gradient noise, original and Minecraft-free, so the layout can be
+  checked headlessly.
 - `config.ContinentsConfig` — `config/continentsoftime.json`, written with defaults on first run.
 - Data: `worldgen/world_preset/continents_of_time.json` (in the world-type list; no explicit settings, so config
   applies) and `single_era.json` (one era, not listed; `level-type=continentsoftime:single_era` on a server).
 
+## The layout (built 2026-08-29)
+
+The layout must seat every era exactly once, keep the home era on the origin, keep every continent inside a box
+no larger than `max_continent_size`, keep at least `ocean_width` of water between any two, and be cheap per
+column. `ContinentLayout` does it in two steps:
+
+**Placement, by construction rather than by search.** Seats live on a hex-offset grid with pitch
+`max_continent_size + ocean_width`; each cell owns a square *region* `max_continent_size` wide, so regions are
+`ocean_width` apart in every direction, and a seat's box is jittered anywhere inside its region — the ocean gap
+holds whatever the noise does. The home era takes cell (0, 0) with its box centred on the origin. The other
+cells are chosen by seeded growth outward from it (each step adds a random cell adjacent to those already
+chosen), so the continents form one connected archipelago, and they are handed out in roster order: the roster
+*is* the timeline you sail along. Finite eras (Classic, Indev) are seated unshaped in a box the size of their
+level.
+
+**Shape, with the guarantees in the arithmetic.** A shaped seat maps its box to normalised coordinates, warps
+them with two fractal noises, and evaluates `(1 - r^2) + core + DETAIL * noise - BIAS`; land is where that is
+positive. All noises are bounded to [-1, 1], so: the box centre is always land (a bump on the *unwarped*
+centre guarantees a solid core), and land can never reach the box edge (`BIAS > DETAIL` makes the rim sea; the
+warp can carry a land point at most `WARP` further out, and the box is normalised to `RIM + WARP`). A gain on
+the coastline noise, clamped back to the bound, is what turns a tidy blob into lobes, bays, fjords and offshore
+islands. Constants are named at the top of `ContinentLayout` with the reasoning next to each.
+
+**Cost.** ~0.14 µs per column uncached (`eraAtColumn`); generation goes through a per-chunk 16×16 cache
+(`eraAt`). `fieldAt` exposes the signed field (positive inland, negative at sea) for the ocean/seam work.
+
+**Harness.** `./gradlew layoutTest [-Pseeds=a,b]` builds the default roster's layout for several seeds without
+Minecraft and asserts determinism, every era present, origin + a 512-block disc on home, land inside every box
+and within the maximum, land-to-land gaps, and chunk/column agreement; it writes `build/layout/<seed>.png`
+(whole atlas) and `<seed>-home.png` (home continent at 8 blocks per pixel) for eyeballing.
+
+**Known consequence for the next milestone:** Moderner Beta's finite provider is anchored to the world origin
+(its level spans ±width/2 around 0,0 and everything outside is "border"). A finite era seated elsewhere
+therefore generates border, not its level, until the atlas translates it — see HANDOFF item 2.
+
 ## Not yet built
 
-The layout itself (continents from the seed, oceans, seams), spawn on the home continent, per-continent visuals.
+Oceans between continents and the seams under them, spawn on the home continent, per-continent visuals.
 See HANDOFF.md "Next work".
