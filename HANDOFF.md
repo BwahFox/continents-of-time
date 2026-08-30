@@ -60,11 +60,13 @@ server-side and the biomes are data-driven and synced at login. **Keep it that w
 wide; the Legacy Console seat uses the *large* preset; Skylands is seated (floating islands over open ocean);
 finite eras (Classic, Indev) are small islands, since that is what those worlds were.
 
-## State as of 2026-08-29 (session 4)
+## State as of 2026-08-30 (end of session 4)
 
 **The layout, the oceans/seams, spawn, `/cot` and the optional client half (per-continent visuals) are built and
 verified — the visuals and the coasts by the author in the dev client (2026-08-29: "this works", "everything looks
-fine"). The base is done; what comes next is the author's pick from the Parked list, then the backport.**
+fine"). Session 4 then added, all verified on the server and pushed: Alpha winter mode in the default roster, the
+re-open fix (feature-sort cycle), the "no oceans" option, the infinite atlas, era-accurate structures and cave
+biomes. The author closed the session with "good enough for tonight". Only the backport remains on the list.**
 
 - Build: `./gradlew build` (Java 25, Loom 1.17, Fabric API 0.158.0+26.2, Moderner Beta 5.0.0-alpha.3+26.2 from
   the Modrinth maven) produces `build/libs/continentsoftime-0.1.0.jar`. No Stonecutter yet (26.2 only for now).
