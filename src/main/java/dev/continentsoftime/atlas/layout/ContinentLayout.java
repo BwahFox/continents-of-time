@@ -220,7 +220,22 @@ public final class ContinentLayout implements Layout {
 			centerX += (int) Math.round((offsetX * 2 - 1) * playX);
 			centerZ += (int) Math.round((offsetZ * 2 - 1) * playZ);
 		}
+		if (footprint.anchored()) {
+			// An anchored era is translated to its seat by whole chunks, so its centre must be chunk-aligned. Snap
+			// toward the cell's centre so the box stays inside its region.
+			centerX = snapToward(centerX, cellCenterX(cellX, cellZ));
+			centerZ = snapToward(centerZ, cellCenterZ(cellZ));
+		}
 		return new Seat(era, cellX, cellZ, centerX, centerZ, halfX, halfZ, footprint.shaped());
+	}
+
+	private static int snapToward(int value, int toward) {
+		int down = Math.floorDiv(value, 16) * 16;
+		int up = down + 16;
+		if (down == value) {
+			return value;
+		}
+		return Math.abs(down - toward) <= Math.abs(up - toward) ? down : up;
 	}
 
 	private Shape shape(int era, Seat seat) {
@@ -276,6 +291,7 @@ public final class ContinentLayout implements Layout {
 	 * an unshaped (finite) box it is {@code 1}; inside a shaped box it is the noise field, which crosses zero at
 	 * the coast and falls with the radial profile.
 	 */
+	@Override
 	public double fieldAt(int x, int z) {
 		Seat seat = seatContaining(x, z);
 		if (seat == null) {
@@ -320,15 +336,20 @@ public final class ContinentLayout implements Layout {
 
 	@Override
 	public int eraAt(int blockX, int blockZ) {
-		long key = ((long) (blockX >> 4) << 32) ^ ((blockZ >> 4) & 0xFFFFFFFFL);
+		return chunkEras(blockX >> 4, blockZ >> 4)[((blockX & 15) << 4) | (blockZ & 15)];
+	}
+
+	/** The 16x16 era map of a chunk (index {@code (x & 15) << 4 | (z & 15)}), cached. */
+	private byte[] chunkEras(int chunkX, int chunkZ) {
+		long key = ((long) chunkX << 32) ^ (chunkZ & 0xFFFFFFFFL);
 		byte[] chunk = chunkCache.get(key);
 		if (chunk == null) {
 			if (chunkCache.size() >= CACHE_LIMIT) {
 				chunkCache.clear();
 			}
 			chunk = new byte[256];
-			int baseX = blockX & ~15;
-			int baseZ = blockZ & ~15;
+			int baseX = chunkX << 4;
+			int baseZ = chunkZ << 4;
 			for (int dx = 0; dx < 16; dx++) {
 				for (int dz = 0; dz < 16; dz++) {
 					chunk[(dx << 4) | dz] = (byte) eraAtColumn(baseX + dx, baseZ + dz);
@@ -336,7 +357,7 @@ public final class ContinentLayout implements Layout {
 			}
 			chunkCache.put(key, chunk);
 		}
-		return chunk[((blockX & 15) << 4) | (blockZ & 15)];
+		return chunk;
 	}
 
 	/**
@@ -345,6 +366,18 @@ public final class ContinentLayout implements Layout {
 	 * <p>Only shaped continents are candidates: a finite era's generator produces its "beyond the level" border
 	 * outside its box, so it must never own open water. (If every era is finite, the nearest box wins.)
 	 */
+	/** Any land column makes the chunk that era's; boxes never share a chunk (they are {@code oceanWidth} apart). */
+	@Override
+	public int chunkOwner(int chunkX, int chunkZ) {
+		byte[] chunk = chunkEras(chunkX, chunkZ);
+		for (byte era : chunk) {
+			if (era != OCEAN) {
+				return era;
+			}
+		}
+		return OCEAN;
+	}
+
 	@Override
 	public int nearestEraAt(int blockX, int blockZ) {
 		Seat best = null;

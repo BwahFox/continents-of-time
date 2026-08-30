@@ -1,6 +1,7 @@
 package dev.continentsoftime.atlas;
 
 import dev.continentsoftime.atlas.layout.Footprint;
+import dev.continentsoftime.mixin.ChunkProviderNoiseAccessor;
 import mod.bluestaggo.modernerbeta.api.level.chunk.ChunkProviderFinite;
 import mod.bluestaggo.modernerbeta.api.level.chunk.surface.SurfaceConfig;
 import mod.bluestaggo.modernerbeta.level.biome.ModernBetaBiomeSource;
@@ -70,12 +71,35 @@ public record HostedEra(Identifier id, ChunkGenerator generator, BiomeSource bio
 	}
 
 	/**
+	 * Move an anchored era's origin to its seat: its chunk provider and its biome provider both learn the offset
+	 * (see {@link Translated}). A no-op for eras that are not anchored. Call after {@link #init}.
+	 */
+	public void translateTo(int centerX, int centerZ) {
+		if (!footprint(Integer.MAX_VALUE).anchored()) {
+			return;
+		}
+		if (generator instanceof ModernBetaChunkGenerator mb && mb.getChunkProvider() instanceof Translated translated) {
+			translated.continentsoftime$translateTo(centerX, centerZ);
+		}
+		if (biomeSource instanceof ModernBetaBiomeSource mb && mb.getBiomeProvider() instanceof Translated translated) {
+			translated.continentsoftime$translateTo(centerX, centerZ);
+		}
+	}
+
+	/**
 	 * What the layout needs to seat this era. Finite eras (Classic, Indev) are their level's own size and are
-	 * seated as-is; every other era is shaped inside a box of the configured maximum. Valid after {@link #init}.
+	 * seated as-is; a noise era with an enabled world border (Legacy Console) is shaped inside that border; every
+	 * other era is shaped inside a box of the configured maximum. Valid after {@link #init}.
 	 */
 	public Footprint footprint(int maxContinentSize) {
-		if (generator instanceof ModernBetaChunkGenerator mb && mb.getChunkProvider() instanceof ChunkProviderFinite finite) {
-			return Footprint.finite(finite.getLevelWidth(), finite.getLevelLength());
+		if (generator instanceof ModernBetaChunkGenerator mb) {
+			if (mb.getChunkProvider() instanceof ChunkProviderFinite finite) {
+				return Footprint.finite(finite.getLevelWidth(), finite.getLevelLength());
+			}
+			if (mb.getChunkProvider() instanceof ChunkProviderNoiseAccessor noise
+				&& noise.continentsoftime$worldBorder() != null && noise.continentsoftime$worldBorder().enabled()) {
+				return Footprint.bordered(Math.min(noise.continentsoftime$worldBorder().width(), maxContinentSize));
+			}
 		}
 		return Footprint.shaped(maxContinentSize);
 	}

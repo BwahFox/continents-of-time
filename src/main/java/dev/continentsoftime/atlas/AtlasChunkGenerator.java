@@ -2,9 +2,13 @@ package dev.continentsoftime.atlas;
 
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import dev.continentsoftime.ContinentsOfTime;
+import dev.continentsoftime.atlas.layout.Seabed;
+import net.minecraft.util.Util;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderGetter;
+import net.minecraft.core.QuartPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.RegistryOps;
 import net.minecraft.server.level.WorldGenRegion;
@@ -13,8 +17,12 @@ import net.minecraft.world.level.LevelHeightAccessor;
 import net.minecraft.world.level.NoiseColumn;
 import net.minecraft.world.level.StructureManager;
 import net.minecraft.world.level.WorldGenLevel;
+import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.BiomeManager;
 import net.minecraft.world.level.biome.BiomeSource;
+import net.minecraft.world.level.biome.Climate;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.ChunkGenerator;
 import net.minecraft.world.level.levelgen.Heightmap;
@@ -22,17 +30,27 @@ import net.minecraft.world.level.levelgen.NoiseBasedChunkGenerator;
 import net.minecraft.world.level.levelgen.NoiseGeneratorSettings;
 import net.minecraft.world.level.levelgen.RandomState;
 import net.minecraft.world.level.levelgen.blending.Blender;
+import org.jspecify.annotations.Nullable;
 
+import java.util.EnumSet;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 /**
  * The master generator. Every per-chunk generation step is routed to the {@link HostedEra} that owns the chunk;
- * world-wide answers (height range, sea level, structure state) are the atlas's own.
+ * chunks with no land column at all are <em>ocean chunks</em>, which the atlas generates itself: the modern
+ * ocean (vanilla ocean biomes and surface rules) over a seabed from {@link Seabed}. World-wide answers (height
+ * range, sea level, structure state) are the atlas's own.
+ *
+ * <p>At every coast the owning era's terrain is clamped into the {@link Seabed} height band after the era has
+ * filled the chunk: sea columns become exactly the seabed (so an era chunk and an ocean chunk meet without a
+ * step), and the coast band eases the era's terrain down to the shoreline so no era ends in a wall at the water.
+ * Eras whose own sea level is far below the atlas's (Skylands) get the seabed under everything and are never
+ * clipped.
  *
  * <p>It extends {@link NoiseBasedChunkGenerator} over vanilla's overworld settings so the server builds the
- * modern {@link RandomState} for the dimension (surface system, aquifer noises); hosted eras receive that state and
- * use what they need of it. Oceans between continents and the seams under them come with the atlas milestone.
+ * modern {@link RandomState} for the dimension (surface system, aquifer noises); hosted eras receive that state
+ * and use what they need of it, and ocean chunks are surfaced by it directly.
  */
 public class AtlasChunkGenerator extends NoiseBasedChunkGenerator {
 	public static final MapCodec<AtlasChunkGenerator> CODEC = RecordCodecBuilder.mapCodec(i -> i.group(
@@ -40,7 +58,13 @@ public class AtlasChunkGenerator extends NoiseBasedChunkGenerator {
 		RegistryOps.retrieveGetter(Registries.NOISE_SETTINGS)
 	).apply(i, i.stable(AtlasChunkGenerator::new)));
 
+	private static final EnumSet<Heightmap.Types> GENERATION_HEIGHTMAPS = EnumSet.of(Heightmap.Types.OCEAN_FLOOR_WG, Heightmap.Types.WORLD_SURFACE_WG);
+	private static final BlockState STONE = Blocks.STONE.defaultBlockState();
+	private static final BlockState WATER = Blocks.WATER.defaultBlockState();
+	private static final BlockState AIR = Blocks.AIR.defaultBlockState();
+
 	private final AtlasBiomeSource atlas;
+	private Seabed seabed;
 
 	public AtlasChunkGenerator(BiomeSource biomeSource, HolderGetter<NoiseGeneratorSettings> noiseSettings) {
 		super(biomeSource, noiseSettings.getOrThrow(NoiseGeneratorSettings.OVERWORLD));
@@ -48,24 +72,38 @@ public class AtlasChunkGenerator extends NoiseBasedChunkGenerator {
 			throw new IllegalArgumentException("Continents of Time's generator needs its own biome source, got " + biomeSource);
 		}
 		this.atlas = atlasSource;
+		// The overworld settings holder is unbound while registries load, so no getSeaLevel()/getMinY() here;
+		// the real seabed replaces this placeholder at server start (init).
+		this.seabed = new Seabed(0, 63, -64, 319);
 	}
 
 	public AtlasBiomeSource atlas() {
 		return atlas;
 	}
 
-	/** Server start, once per world: hosted eras build their providers for the seed. */
+	public Seabed seabed() {
+		return seabed;
+	}
+
+	/** Server start, once per world: hosted eras build their providers for the seed, the layout and seabed follow. */
 	public void init(long seed) {
 		atlas.init(seed);
+		this.seabed = new Seabed(seed, getSeaLevel(), getMinY(), getMinY() + getGenDepth() - 1);
 	}
 
-	private ChunkGenerator owner(ChunkAccess chunk) {
+	/** Chunk futures swallow exceptions into a failed chunk result; log ours first so the cause is in the log. */
+	private static <T> T logged(String step, ChunkAccess chunk, java.util.function.Supplier<T> body) {
+		try {
+			return body.get();
+		} catch (RuntimeException | Error e) {
+			ContinentsOfTime.LOGGER.error("Continents of Time: {} failed for chunk {}", step, chunk.getPos(), e);
+			throw e;
+		}
+	}
+
+	private @Nullable HostedEra owner(ChunkAccess chunk) {
 		ChunkPos pos = chunk.getPos();
-		return atlas.eraAtChunk(pos.x(), pos.z()).generator();
-	}
-
-	private ChunkGenerator owner(int blockX, int blockZ) {
-		return atlas.eraAtBlock(blockX, blockZ).generator();
+		return atlas.ownerOfChunk(pos.x(), pos.z());
 	}
 
 	@Override
@@ -73,52 +111,232 @@ public class AtlasChunkGenerator extends NoiseBasedChunkGenerator {
 		return CODEC;
 	}
 
-	// ---- per-chunk steps: the owning era does the work ----
+	// ---- per-chunk steps: the owning era does the work; the atlas does the ocean and the coasts ----
 
 	@Override
 	public CompletableFuture<ChunkAccess> createBiomes(RandomState randomState, Blender blender, StructureManager structureManager, ChunkAccess chunk) {
-		return owner(chunk).createBiomes(randomState, blender, structureManager, chunk);
+		HostedEra owner = owner(chunk);
+		if (owner == null) {
+			return CompletableFuture.supplyAsync(Util.name(() -> logged("ocean biomes", chunk, () -> {
+				chunk.fillBiomesFromNoise(atlas, randomState.sampler());
+				return chunk;
+			}), () -> "cot_ocean_biomes"), Util.backgroundExecutor());
+		}
+		// Sea columns get the modern ocean at the surface step, not here: a ProtoChunk refuses biome reads until
+		// its status reaches BIOMES, which happens only after this future completes.
+		return owner.generator().createBiomes(randomState, blender, structureManager, chunk);
 	}
 
 	@Override
 	public CompletableFuture<ChunkAccess> fillFromNoise(Blender blender, RandomState randomState, StructureManager structureManager, ChunkAccess chunk) {
-		return owner(chunk).fillFromNoise(blender, randomState, structureManager, chunk);
+		HostedEra owner = owner(chunk);
+		if (owner == null) {
+			return CompletableFuture.supplyAsync(Util.name(() -> logged("ocean terrain", chunk, () -> buildOcean(chunk)), () -> "cot_ocean"), Util.backgroundExecutor());
+		}
+		return owner.generator().fillFromNoise(blender, randomState, structureManager, chunk)
+			.thenApply(c -> logged("shape coast", c, () -> shapeCoast(c, owner)));
 	}
 
 	@Override
 	public void buildSurface(WorldGenRegion region, StructureManager structureManager, RandomState randomState, ChunkAccess chunk) {
-		owner(chunk).buildSurface(region, structureManager, randomState, chunk);
+		HostedEra owner = owner(chunk);
+		if (owner == null) {
+			super.buildSurface(region, structureManager, randomState, chunk); // vanilla's rules: gravel and sand floors, deepslate, bedrock
+			return;
+		}
+		// Before the era's surface rules run, so they see the modern ocean on sea columns; and again after, because
+		// Moderner Beta injects its own biomes (beaches, oceans) during its surface step.
+		logged("paint sea", chunk, () -> paintSea(chunk, randomState.sampler()));
+		logged("era surface", chunk, () -> { owner.generator().buildSurface(region, structureManager, randomState, chunk); return chunk; });
+		logged("paint sea after surface", chunk, () -> paintSea(chunk, randomState.sampler()));
 	}
 
 	@Override
 	public void applyCarvers(WorldGenRegion region, long seed, RandomState randomState, BiomeManager biomeManager, StructureManager structureManager, ChunkAccess chunk) {
-		owner(chunk).applyCarvers(region, seed, randomState, biomeManager, structureManager, chunk);
+		HostedEra owner = owner(chunk);
+		if (owner != null) {
+			owner.generator().applyCarvers(region, seed, randomState, biomeManager, structureManager, chunk);
+		}
 	}
 
 	@Override
 	public void applyBiomeDecoration(WorldGenLevel level, ChunkAccess chunk, StructureManager structureManager) {
-		owner(chunk).applyBiomeDecoration(level, chunk, structureManager);
+		HostedEra owner = owner(chunk);
+		if (owner == null) {
+			HostedEra modern = atlas.modernEra();
+			if (modern != null) {
+				modern.generator().applyBiomeDecoration(level, chunk, structureManager); // kelp, seagrass, ores: the modern ocean's features
+			} else {
+				super.applyBiomeDecoration(level, chunk, structureManager);
+			}
+			return;
+		}
+		owner.generator().applyBiomeDecoration(level, chunk, structureManager);
 	}
 
 	@Override
 	public void spawnOriginalMobs(WorldGenRegion region) {
 		ChunkPos center = region.getCenter();
-		atlas.eraAtChunk(center.x(), center.z()).generator().spawnOriginalMobs(region);
+		HostedEra owner = atlas.ownerOfChunk(center.x(), center.z());
+		if (owner != null) {
+			owner.generator().spawnOriginalMobs(region);
+		}
 	}
 
 	@Override
 	public int getBaseHeight(int x, int z, Heightmap.Types type, LevelHeightAccessor level, RandomState randomState) {
-		return owner(x, z).getBaseHeight(x, z, type, level, randomState);
+		if (atlas.isSea(x, z)) {
+			int floor = seabed.floor(x, z, atlas.layout().fieldAt(x, z));
+			return (type == Heightmap.Types.OCEAN_FLOOR || type == Heightmap.Types.OCEAN_FLOOR_WG ? floor : getSeaLevel()) + 1;
+		}
+		return atlas.eraAtBlock(x, z).generator().getBaseHeight(x, z, type, level, randomState);
 	}
 
 	@Override
 	public NoiseColumn getBaseColumn(int x, int z, LevelHeightAccessor level, RandomState randomState) {
-		return owner(x, z).getBaseColumn(x, z, level, randomState);
+		if (atlas.isSea(x, z)) {
+			int floor = seabed.floor(x, z, atlas.layout().fieldAt(x, z));
+			int minY = level.getMinY();
+			BlockState[] column = new BlockState[level.getHeight()];
+			for (int i = 0; i < column.length; i++) {
+				int y = minY + i;
+				column[i] = y <= floor ? STONE : (y <= getSeaLevel() ? WATER : AIR);
+			}
+			return new NoiseColumn(minY, column);
+		}
+		return atlas.eraAtBlock(x, z).generator().getBaseColumn(x, z, level, randomState);
 	}
 
 	@Override
 	public void addDebugScreenInfo(List<String> lines, RandomState randomState, BlockPos pos) {
-		owner(pos.getX(), pos.getZ()).addDebugScreenInfo(lines, randomState, pos);
+		HostedEra owner = atlas.ownerOfChunk(pos.getX() >> 4, pos.getZ() >> 4);
+		if (owner != null) {
+			owner.generator().addDebugScreenInfo(lines, randomState, pos);
+		}
+	}
+
+	// ---- the ocean and the coasts ----
+
+	/** An ocean chunk: stone up to the seabed, water up to sea level. Surface rules dress it later. */
+	private ChunkAccess buildOcean(ChunkAccess chunk) {
+		ChunkPos pos = chunk.getPos();
+		BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
+		int minY = chunk.getMinY();
+		int seaLevel = getSeaLevel();
+		for (int dx = 0; dx < 16; dx++) {
+			for (int dz = 0; dz < 16; dz++) {
+				int x = pos.getMinBlockX() + dx;
+				int z = pos.getMinBlockZ() + dz;
+				int floor = seabed.floor(x, z, atlas.layout().fieldAt(x, z));
+				for (int y = minY; y <= seaLevel; y++) {
+					chunk.setBlockState(cursor.set(x, y, z), y <= floor ? STONE : WATER, 0);
+				}
+			}
+		}
+		Heightmap.primeHeightmaps(chunk, GENERATION_HEIGHTMAPS);
+		return chunk;
+	}
+
+	/**
+	 * Clamp the era's terrain into the seabed's height band wherever the chunk touches the sea. Sea columns become
+	 * exactly the seabed; the coast band eases the terrain toward the shoreline; inland columns are untouched.
+	 */
+	private ChunkAccess shapeCoast(ChunkAccess chunk, HostedEra owner) {
+		ChunkPos pos = chunk.getPos();
+		int seaLevel = getSeaLevel();
+		int minY = chunk.getMinY();
+		int maxY = minY + chunk.getHeight() - 1;
+		// An era whose own sea is far below ours has nothing under its land (Skylands): give it the seabed everywhere, never clip.
+		boolean skyOcean = owner.generator().getSeaLevel() < seaLevel - 8;
+		BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
+		boolean touched = false;
+
+		for (int dx = 0; dx < 16; dx++) {
+			for (int dz = 0; dz < 16; dz++) {
+				int x = pos.getMinBlockX() + dx;
+				int z = pos.getMinBlockZ() + dz;
+				double field = atlas.layout().fieldAt(x, z);
+				if (!skyOcean && Seabed.inland(field)) {
+					continue;
+				}
+				int lower;
+				int upper;
+				if (skyOcean) {
+					lower = seabed.floor(x, z, Math.min(field, Seabed.DEEP_FIELD));
+					upper = maxY;
+				} else {
+					lower = seabed.lowerBound(x, z, field);
+					upper = seabed.upperBound(x, z, field);
+				}
+
+				int top = minY - 1;
+				for (int y = maxY; y >= minY; y--) {
+					BlockState state = chunk.getBlockState(cursor.set(x, y, z));
+					if (!state.isAir() && state.getFluidState().isEmpty()) {
+						top = y;
+						break;
+					}
+				}
+				if (top > upper) {
+					for (int y = upper + 1; y <= top; y++) {
+						chunk.setBlockState(cursor.set(x, y, z), y <= seaLevel ? WATER : AIR, 0);
+					}
+					top = upper;
+					touched = true;
+				}
+				if (top < lower) {
+					for (int y = Math.max(top + 1, minY); y <= lower; y++) {
+						chunk.setBlockState(cursor.set(x, y, z), STONE, 0);
+					}
+					top = lower;
+					touched = true;
+				}
+				// No open air below the waterline in a column the sea reaches, and no era water above it (Moderner
+				// Beta's presets put their sea at 64; the atlas's is the modern 63, and one coast-long step would show).
+				for (int y = top + 1; y <= seaLevel; y++) {
+					if (chunk.getBlockState(cursor.set(x, y, z)).isAir()) {
+						chunk.setBlockState(cursor, WATER, 0);
+						touched = true;
+					}
+				}
+				if (!skyOcean) {
+					for (int y = Math.max(top + 1, seaLevel + 1); y <= seaLevel + 2; y++) {
+						if (!chunk.getBlockState(cursor.set(x, y, z)).getFluidState().isEmpty()) {
+							chunk.setBlockState(cursor, AIR, 0);
+							touched = true;
+						}
+					}
+				}
+			}
+		}
+		if (touched) {
+			Heightmap.primeHeightmaps(chunk, GENERATION_HEIGHTMAPS);
+		}
+		return chunk;
+	}
+
+	/** Re-assert the modern ocean biome on every sea column of an era chunk (keeps what the era chose elsewhere). */
+	private ChunkAccess paintSea(ChunkAccess chunk, Climate.Sampler sampler) {
+		ChunkPos pos = chunk.getPos();
+		boolean anySea = false;
+		for (int dx = 0; dx < 16 && !anySea; dx += 4) {
+			for (int dz = 0; dz < 16; dz += 4) {
+				if (atlas.isSea(pos.getMinBlockX() + dx, pos.getMinBlockZ() + dz)) {
+					anySea = true;
+					break;
+				}
+			}
+		}
+		if (!anySea) {
+			return chunk;
+		}
+		chunk.fillBiomesFromNoise((biomeX, biomeY, biomeZ, s) -> {
+			if (atlas.isSea(QuartPos.toBlock(biomeX), QuartPos.toBlock(biomeZ))) {
+				return atlas.oceanBiome(biomeX, biomeY, biomeZ, s);
+			}
+			return chunk.getNoiseBiome(biomeX, biomeY, biomeZ);
+		}, sampler);
+		return chunk;
 	}
 
 	// ---- world-wide answers stay the atlas's: the dimension's height range and sea level are the modern ones,

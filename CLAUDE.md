@@ -20,7 +20,8 @@ Standing rules (carried from VirtualMinecraft, details in memory):
 - **AI disclosure stays in the README**; never publish to Modrinth (its AI policy) — GitHub releases only.
 - Third-party mods and code are **reference-only**: read them (outside this repo), never copy or vendor them.
   Moderner Beta (MIT) is a **runtime dependency** that hosts the era generators and the reference for how they
-  work; the code here is original and only talks to its public classes. LGPL-3.0.
+  work; the code here is original and talks to its public classes, plus a few small mixins that relocate
+  origin-anchored eras (listed and justified in ARCHITECTURE.md; keep them minimal, never copy its code). LGPL-3.0.
 - All GPU work on the RTX 5090 only, never the 4070. Keep disk use well under 200 GB.
 - The user has a self-declared feature-creep habit: park ideas in HANDOFF's "Parked" section, finish the
   current item. Era-emulation gameplay and Legacy Console styling are ALREADY PARKED — do not pull them in.

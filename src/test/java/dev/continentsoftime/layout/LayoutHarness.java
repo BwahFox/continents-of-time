@@ -3,6 +3,7 @@ package dev.continentsoftime.layout;
 import dev.continentsoftime.atlas.layout.ContinentLayout;
 import dev.continentsoftime.atlas.layout.Footprint;
 import dev.continentsoftime.atlas.layout.Layout;
+import dev.continentsoftime.atlas.layout.Seabed;
 import dev.continentsoftime.atlas.layout.Seat;
 
 import javax.imageio.ImageIO;
@@ -17,7 +18,7 @@ import java.util.List;
 /**
  * Headless check of the atlas layout: {@code ./gradlew layoutTest [-Pseeds=1,2,3]}. No Minecraft involved.
  *
- * <p>For each seed it builds the default roster's layout (25 eras: 22 shaped, 3 finite 256x256 levels; home is
+ * <p>For each seed it builds the default roster's layout (25 eras: 21 shaped, Legacy Console bordered at 5120, 3 finite 256x256 levels; home is
  * roster index 19, like {@code minecraft:overworld} in the default roster) and asserts: determinism across two
  * instances; every era present; the origin and a disc around it on the home continent; every continent's land
  * inside its box and no wider than the maximum; at least {@code oceanWidth} between any two continents' land;
@@ -28,6 +29,8 @@ public final class LayoutHarness {
 	private static final int ERAS = 25;
 	private static final int HOME = 19;
 	private static final int[] FINITE = {0, 1, 2};
+	/** Legacy Console: an infinite generator with an origin-centred 5120-block world border, seated bordered. */
+	private static final int LEGACY_CONSOLE = 23;
 	private static final int MAX_SIZE = 10_000;
 	private static final int OCEAN = 2_000;
 	private static final int PIXEL = 32;
@@ -56,6 +59,8 @@ public final class LayoutHarness {
 			checkGaps(layout, extents);
 			checkEveryEraPresent(layout, extents);
 			timeColumns(layout);
+			checkSeabed(seed, layout);
+			printCrossings(layout);
 			render(layout, out.resolve(seed + ".png"));
 			renderZoom(layout, out.resolve(seed + "-home.png"));
 			ascii(layout);
@@ -74,7 +79,7 @@ public final class LayoutHarness {
 		for (int era = 0; era < ERAS; era++) {
 			int e = era;
 			boolean finite = Arrays.stream(FINITE).anyMatch(f -> f == e);
-			list.add(finite ? Footprint.finite(256, 256) : Footprint.shaped(MAX_SIZE));
+			list.add(finite ? Footprint.finite(256, 256) : era == LEGACY_CONSOLE ? Footprint.bordered(5120) : Footprint.shaped(MAX_SIZE));
 		}
 		return list;
 	}
@@ -255,6 +260,86 @@ public final class LayoutHarness {
 		}
 		long elapsed = System.nanoTime() - start;
 		System.out.printf("cost: %.2f us per uncached column (%d columns)%n", elapsed / 1000.0 / n, n);
+	}
+
+	/**
+	 * The seabed and coast band: sea columns have a single height in {@code [minY+1, seaLevel-SHORE]} that deepens
+	 * away from the coast; the band's bounds bracket each other, meet the seabed at the shoreline, and open to the
+	 * whole world inland; ocean chunks and era chunks therefore agree wherever they meet.
+	 */
+	private static void checkSeabed(long seed, ContinentLayout layout) {
+		Seabed seabed = new Seabed(seed, 63, -64, 319);
+		Seat home = layout.seatOf(HOME);
+		int bad = 0;
+		int seaColumns = 0;
+		int bandColumns = 0;
+		int shallowest = Integer.MIN_VALUE;
+		int deepest = Integer.MAX_VALUE;
+		for (int x = home.minX() - OCEAN; x <= home.maxX() + OCEAN; x += 13) {
+			for (int z = home.minZ() - OCEAN; z <= home.maxZ() + OCEAN; z += 17) {
+				double field = layout.fieldAt(x, z);
+				int lower = seabed.lowerBound(x, z, field);
+				int upper = seabed.upperBound(x, z, field);
+				if (lower > upper) {
+					bad++;
+				}
+				if (Seabed.sea(field)) {
+					seaColumns++;
+					int floor = seabed.floor(x, z, field);
+					if (floor != lower || floor != upper || floor < -63 || floor > 63 - Seabed.SHORE) {
+						bad++;
+					}
+					shallowest = Math.max(shallowest, floor);
+					deepest = Math.min(deepest, floor);
+				} else if (!Seabed.inland(field)) {
+					bandColumns++;
+					if (upper < 63 - Seabed.SHORE || lower > 63 - Seabed.SHORE) {
+						bad++; // the band always admits the shoreline height
+					}
+				} else if (lower != -64 || upper != 319) {
+					bad++;
+				}
+			}
+		}
+		// Continuity at the shoreline: just inside and just outside field 0 the bounds agree to within the relief.
+		int shoreline = 63 - Seabed.SHORE;
+		int seaSide = seabed.floor(0, 0, -1e-9);
+		int landLower = seabed.lowerBound(0, 0, 1e-9);
+		int landUpper = seabed.upperBound(0, 0, 1e-9);
+		if (seaSide != shoreline || landLower != shoreline || landUpper != shoreline) {
+			bad++;
+		}
+		// Far out, the floor is deep and does not jump at the box edge (field -1 outside boxes).
+		int deepInside = seabed.floor(1000, 1000, Seabed.DEEP_FIELD);
+		int deepOutside = seabed.floor(1000, 1000, -1);
+		if (Math.abs(deepInside - deepOutside) > 1) {
+			bad++;
+		}
+		check(bad == 0, bad + " seabed/coast-band violation(s)");
+		check(seaColumns > 0 && bandColumns > 0, "no sea or no coast band columns sampled around home");
+		System.out.printf("seabed: %d sea columns (floor y %d..%d), %d coast-band columns, shoreline y %d%n",
+			seaColumns, deepest, shallowest, bandColumns, shoreline);
+	}
+
+	/** Where the era changes walking along the axes from the origin: coordinates to probe on a real server. */
+	private static void printCrossings(ContinentLayout layout) {
+		int[][] directions = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
+		String[] names = {"+x", "-x", "+z", "-z"};
+		for (int d = 0; d < 4; d++) {
+			StringBuilder sb = new StringBuilder("crossings " + names[d] + ":");
+			int previous = layout.eraAtColumn(0, 0);
+			for (int i = 1; i <= layout.pitch() * 2; i++) {
+				int x = directions[d][0] * i;
+				int z = directions[d][1] * i;
+				int era = layout.eraAtColumn(x, z);
+				if (era != previous) {
+					sb.append(' ').append(x).append(',').append(z).append(' ').append(previous == Layout.OCEAN ? "sea" : "era " + previous)
+						.append("->").append(era == Layout.OCEAN ? "sea" : "era " + era);
+					previous = era;
+				}
+			}
+			System.out.println(sb);
+		}
 	}
 
 	private static void render(ContinentLayout layout, Path file) throws IOException {

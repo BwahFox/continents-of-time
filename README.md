@@ -6,9 +6,10 @@ Each historical generator — from the earliest days to modern — gets its own 
 separate the eras. Sail far enough and you make landfall in another age of the game: the terrain changes under
 your feet, the horizon starts rolling the way it used to, and the world you knew is a boat trip behind you.
 
-**Status: early development.** The generator plumbing works and the continent layout is built (every era seated
-from the seed, verified headlessly and on a server); the oceans between continents and the seams beneath them
-are the current work. Nothing is playable in the intended sense yet.
+**Status: early development.** The continent layout, the oceans between continents and the coasts are built
+and verified on a server (every era seated from the seed, modern ocean between, terrain eased under the water at
+each coast, finite and bordered eras relocated to their seats). Spawn and a first proper look from a client are
+the current work. Nothing is playable in the intended sense yet.
 
 ## Plans
 

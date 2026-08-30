@@ -41,48 +41,60 @@ layout seats eras in roster order outward from the modern home, so reordering th
 wide; the Legacy Console seat uses the *large* preset; Skylands is seated (floating islands over open ocean);
 finite eras (Classic, Indev) are small islands, since that is what those worlds were.
 
-## State as of 2026-08-29 (session 3)
+## State as of 2026-08-29 (session 3, continued)
 
-**Items 1–4 of the original plan are done, and the atlas layout (session 3) is built and verified; oceans and
-seams are next.**
+**The layout and the oceans/seams are built and verified on a server; spawn and a first client look are next.**
 
 - Build: `./gradlew build` (Java 25, Loom 1.17, Fabric API 0.158.0+26.2, Moderner Beta 5.0.0-alpha.3+26.2 from
   the Modrinth maven) produces `build/libs/continentsoftime-0.1.0.jar`. No Stonecutter yet (26.2 only for now).
 - Code: `dev.continentsoftime.atlas` — `AtlasChunkGenerator`, `AtlasBiomeSource`, `HostedEra`, `AtlasSettings`,
-  `Eras`; `atlas.layout` — `Layout`, `ContinentLayout`, `Footprint`, `Seat`, `Noise`; `config.ContinentsConfig`.
+  `Eras`, `Translated`; `atlas.layout` — `Layout`, `ContinentLayout`, `Footprint`, `Seat`, `Seabed`, `Noise`;
+  `mixin` — eight small mixins into Moderner Beta that move anchored eras to their seats; `config.ContinentsConfig`.
   Data: two world presets — `continentsoftime:continents_of_time` (in the world-type list; roster and sizes
   from config) and `continentsoftime:single_era` (one era everywhere; not listed; for verification).
-- **The layout (session 3).** `ContinentLayout` seats every roster era once on a hex-offset grid with pitch
+- **The layout.** `ContinentLayout` seats every roster era once on a hex-offset grid with pitch
   `maxContinentSize + oceanWidth` (the ocean gap is guaranteed by construction), home era on the origin, cells
   grown outward from home in **roster order — the roster is the timeline you sail along**; each infinite era is a
   domain-warped-noise continent inside its box, provably never touching the box edge and provably land at the
-  centre; finite eras (Classic, Indev) are unshaped boxes the size of their level. ~0.14 µs per column, cached
-  per chunk. Ownership is per chunk (centre column); **open ocean is routed to the nearest *shaped* continent's era for
-  now** (never to a finite era, whose generator only makes its water-and-`the_void` border outside its level),
-  so between continents you still see that era's terrain, ending in a hard chunk-boundary cliff, until item 1
-  below lands. Seen in the dev client 2026-08-29: modern forest dropping into flat water at the seam — expected. Design and the
-  reasoning behind every constant: ARCHITECTURE.md "The layout".
-- **Verified 2026-08-29 (session 3):** `./gradlew layoutTest` passes for four seeds (determinism, all 25 eras
-  seated, origin + 512-block disc on home, land inside every box and ≤ 10,000 wide, land-to-land gaps ≥ 2,000 —
-  observed ≥ 3,800 — chunk/column agreement); the rendered maps show real coastlines (bays, fjords, peninsulas,
-  offshore islands). Dedicated server on `continentsoftime:continents_of_time`, seed 20260829, world `atlas`:
-  logs the seat table; at the origin the nearest `minecraft:plains` is 71 blocks away and the nearest
-  `moderner_beta:beta_forest` 7,198; at the Beta 1.7.3 seat's centre (-12324, -659) beta biomes are within
-  300–900 blocks and vanilla biomes ~7,700 away. The seed-20260829 seat table is in that server log and in the
-  harness output (same seats: the harness models the default roster exactly).
-- **Finding for item 1:** Moderner Beta's finite provider (`ChunkProviderFinite`) is anchored to the world
-  origin — its level spans ±width/2 around (0, 0), everything outside is `generateBorder`, and `getHeight`
-  returns sea level there. A finite era seated anywhere but the origin currently generates border. The atlas
-  must translate finite eras to their seat (a coordinate offset around the hosted generator, or a small mixin
-  on `ChunkProviderFinite.inWorldBounds`/`generateTerrain`'s offsets) — part of the oceans/seams work.
+  centre; finite eras (Classic, Indev) are unshaped boxes the size of their level; Legacy Console is shaped
+  inside its own 5120 border. ~0.14 µs per column, cached per chunk. Design and the reasoning behind every
+  constant: ARCHITECTURE.md "The layout".
+- **Oceans and seams.** Chunks with no land column are ocean chunks the atlas generates itself (modern ocean
+  biomes by temperature, `Seabed` floor, water to 63, vanilla surface rules, modern-era decoration). Every era
+  chunk touching the sea is clamped into the `Seabed` height band, so ocean and era chunks meet at the same
+  seabed height and terrain eases down to the shoreline. Sea columns are the modern ocean biome; it stops at the
+  coast. **Anchored eras are translated to their seats** through mixins on Moderner Beta's providers (Classic,
+  Indev, Legacy Console). All of it: ARCHITECTURE.md "Oceans and seams".
+- **Verified 2026-08-29 (session 3):** `./gradlew layoutTest` passes for four seeds (layout guarantees, seabed
+  and coast-band invariants, chunk/column agreement, open water never routed to a finite era). Dedicated server
+  on `continentsoftime:continents_of_time`, seed 20260829, world `atlas` (fresh), probed by block tests over
+  RCON: home east coast at z=0 — vanilla terrain to x 3119, then the seabed from y 61 at the shoreline down to
+  51 by x 3344 with `minecraft:ocean`; deep ocean at x 6000 — floor y 19, water to 63; Infdev 227 coast at
+  x 8976 — seabed rising to the shoreline, Infdev land beyond; Classic 0.0.14a seat (box x 5744..6000,
+  z -9440..-9184) — its level's terrain (y 62..77) and its own biome across the box, modern ocean around it;
+  Legacy Console seat — forest/plains land inside its box, ocean outside; Skylands seat — deep seabed under the
+  sky islands. No generation exceptions.
+- **Things to look at in-game (not verified visually yet):** the coast band's shape (era terrain higher than
+  the shoreline is cut along a quadratic rise; era terrain lower — an era's own sea at the layout coast — is
+  filled up to a sandbar at the shoreline); Legacy Console shows ocean-biome patches on land inside its box
+  (x -42340..-41560 at z 80976 for seed 20260829), possibly its own height-based biome injection interacting
+  with the translated border — decide after seeing it; finite levels' surfaces after the coast clamp.
+- **Lesson from this session:** chunks generated in an earlier run stay on disk — the chunk pyramid pre-generates
+  a radius around every loaded chunk — so a fix can look intermittent when re-probed on a used world. Verify
+  on fresh chunks or a fresh world.
 
 **Test recipe (headless):** `run/server/` holds `eula.txt` and `server.properties` (offline mode, port 25599,
-RCON on 25598 password `cottest`, view distance 6). It now points at `level-name=atlas`,
-`level-type=continentsoftime:continents_of_time` (the multi-era world, 9 MB; the single-era world is still in
+RCON on 25598 password `cottest`, view distance 6). It points at `level-name=atlas`,
+`level-type=continentsoftime:continents_of_time` (the multi-era world; the single-era world is still in
 `run/server/world`, switch `level-name`/`level-type` back to use it). `./gradlew runServer`, then drive it with
-a ten-line RCON client (the protocol is trivial: auth packet type 3, command type 2) — `locate biome`,
-`execute positioned X Y Z run locate biome ...` to probe a seat, `forceload`, `stop`. The `run/` directory is
-gitignored; reuse the worlds there rather than generating fresh ones.
+a ten-line RCON client (the protocol is trivial: auth packet type 3, command type 2). The most useful probe is
+a cross-section script: `forceload add x0 z x1 z` (one chunk row; the command refuses more than 256 chunks),
+wait until `execute if block` stops answering "not loaded", then per column scan `execute if block x y z
+minecraft:air` downward for the top block, test `minecraft:water` for the water surface, and `execute if biome
+x y z <id or #tag>` for the biome. Seat coordinates for a seed are in the server log's seat table and in the
+harness's "crossings" lines. The `run/` directory is gitignored; reuse the worlds there, but remember that
+previously generated chunks stay as they were — verify fixes on fresh chunks (delete the world if needed; it
+is ~10 MB).
 
 **Layout harness:** `./gradlew layoutTest` (`-Pseeds=1,2,3` to choose seeds; ~16 s per seed) — assertions plus
 `build/layout/<seed>.png` (whole atlas, 32 blocks/pixel) and `<seed>-home.png` (home continent, 8 blocks/pixel).
@@ -96,20 +108,14 @@ World → World Type list** and works from there.
 
 ## Next work, in order
 
-1. **Oceans and seams.** Between continents the atlas must generate open ocean itself instead of routing ocean
-   chunks to the nearest era. **The ocean is the modern ocean** (author, 2026-08-29): vanilla ocean/deep-ocean
-   biomes and vanilla ocean floor, water to sea level; **it simply stops at each coast** — the era's own biomes
-   begin at the coastline, no biome blending (a transition is parked, below). At each coast pull the era's
-   terrain down under the water with a falloff by distance-to-coast, so no era ever ends in a cliff. `ContinentLayout.fieldAt(x, z)` is the signed coast field to drive that (positive inland,
-   negative at sea, crossing zero at the coast). `createBiomes` for multi-era worlds must fill from the atlas
-   biome source (today it delegates, which is right only on land). **Finite eras must be translated to their
-   seat** (see the finding above); Skylands: ocean below, islands above. Recommend the strongest model tier
-   again: it is cross-generator terrain surgery with no pattern in this repo.
-2. **Spawn on the home continent** and a first *look* from a client (screenshots of two coasts). The origin is
-   guaranteed land, so vanilla spawn search should already land on home; verify, then screenshots.
-3. **Per-continent visuals** — Moderner Beta's old fog/sky/grass colouring is a per-level flag that the atlas
+1. **Spawn on the home continent** and a first *look* from a client. The origin is guaranteed land, so vanilla
+   spawn search should already succeed; verify, then take screenshots of two coasts (modern → sea, and a
+   Moderner Beta era → sea), the Classic island at its seat, and the Legacy Console coast; fix what looks
+   wrong (see "Things to look at in-game" above). A `/cot seat <era>` teleport command would make this and all
+   future looking cheap — small, worth doing first.
+2. **Per-continent visuals** — Moderner Beta's old fog/sky/grass colouring is a per-level flag that the atlas
    turns off everywhere; a composite climate sampler would bring it back per continent. Lower priority.
-4. **1.20.1 backport** — after the mod is complete (author's call).
+3. **1.20.1 backport** — after the mod is complete (author's call).
 
 ## Parked (the author's own calls, 2026-08-29 — do not pull forward)
 

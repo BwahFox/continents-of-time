@@ -21,14 +21,29 @@ public interface Layout {
 	int nearestEraAt(int blockX, int blockZ);
 
 	/**
-	 * The era that generates the chunk. Every generation step of a chunk must go to one hosted generator, so
-	 * ownership is decided once per chunk, by its centre column: the owning era on land, the nearest era at sea.
+	 * The signed coast field at a column: positive inland, negative at sea, zero on the coastline. Its magnitude
+	 * is what {@code Seabed} turns into depths and the coast band. Unshaped land (finite levels, or
+	 * {@link #single()}) is {@code 1}.
+	 */
+	double fieldAt(int blockX, int blockZ);
+
+	/**
+	 * The era that generates the chunk, or {@link #OCEAN} for a chunk with no land column at all. Every
+	 * generation step of a chunk must go to one generator, so ownership is decided once per chunk: an era if any
+	 * of its columns is that era's land, otherwise the atlas's own ocean.
 	 */
 	default int chunkOwner(int chunkX, int chunkZ) {
-		int x = (chunkX << 4) + 8;
-		int z = (chunkZ << 4) + 8;
-		int era = eraAt(x, z);
-		return era == OCEAN ? nearestEraAt(x, z) : era;
+		int baseX = chunkX << 4;
+		int baseZ = chunkZ << 4;
+		for (int dx = 0; dx < 16; dx++) {
+			for (int dz = 0; dz < 16; dz++) {
+				int era = eraAt(baseX + dx, baseZ + dz);
+				if (era != OCEAN) {
+					return era;
+				}
+			}
+		}
+		return OCEAN;
 	}
 
 	static Layout single() {
@@ -41,6 +56,11 @@ public interface Layout {
 			@Override
 			public int nearestEraAt(int blockX, int blockZ) {
 				return 0;
+			}
+
+			@Override
+			public double fieldAt(int blockX, int blockZ) {
+				return 1;
 			}
 		};
 	}
