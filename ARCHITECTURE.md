@@ -57,6 +57,12 @@ Facts that shaped the design:
   `NoiseBasedChunkGenerator`, else from a dummy. Hosted eras receive it. The modern era needs the real overworld
   one; Moderner Beta eras use its surface system (default block stone, sea level 63; their own presets say 64 —
   a one-block mismatch inside vanilla's surface rules only, accepted for now).
+- **Presets resolve late.** The world preset (and so the atlas biome source and every hosted era) is decoded
+  while the worldgen registries are still loading; Moderner Beta's `settings_preset` registry is unbound at that
+  moment, which is why its own settings only *reference* a preset and resolve it in `initProvider`. Anything the
+  atlas needs from a resolved preset (the cave-biome map, footprints from providers) must wait for server start:
+  `AtlasBiomeSource.init` → `HostedEra.resolved` → `HostedEra.init`. Resolving at decode time fails the whole
+  registry load ("unbound value ... moderner_beta:classic_0_0_14a_08"; learned 2026-08-30).
 - **The feature sorter refuses the union.** `ChunkGenerator` lazily feature-sorts its biome source's biomes
   (`featuresPerStep`); vanilla forces that sort in `validate()` when a client re-opens a world. Over every era's
   biomes it fails with a "feature order cycle" (vanilla's `desert` and Moderner Beta's `beta_desert` order shared
