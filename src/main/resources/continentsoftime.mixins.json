@@ -17,7 +17,8 @@
 		"client.ContinentFogMixin",
 		"client.ContinentSkyMixin",
 		"client.FoliageTintSourceMixin",
-		"client.GrassBlockTintSourceMixin"
+		"client.GrassBlockTintSourceMixin",
+		"client.WorldCreationUiStateMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

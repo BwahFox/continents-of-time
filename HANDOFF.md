@@ -162,7 +162,8 @@ client half in the dev client the same day ("seems to work"). The backport is do
   first launch creates it), create a Continents of Time world or join a `:1.20.1:runServer` on 127.0.0.1:25599
   (`--args="--quickPlayMultiplayer 127.0.0.1:25599"`), then `/cot seat moderner_beta:beta` — Beta grass/foliage
   tints, the old sky colour and old fog on that continent, vanilla colours back on the modern one. The client log
-  should say "client climate installed for 6 of 26 eras".
+  should say "client climate installed for 7 of 26 eras" (the six Beta/early-release eras and Pocket Edition's
+  sampler).
 
 **Test recipe (headless):** `run/<mc>/server/` (`run/26.2/server`, `run/1.20.1/server`) holds `eula.txt` and
 `server.properties` (offline mode, port 25599, RCON on 25598 password `cottest`, view distance 6). It points at
@@ -195,13 +196,25 @@ Type list** and works from there. `:1.20.1:runClient` is the same for 1.20.1 (no
 
 ## Next work, in order
 
-Nothing is queued: the 1.20.1 backport was the last item on the author's list (2026-08-29: the mod counts as
-complete; everything else stays parked "until a later date"), and the author confirmed the 1.20.1 client half
-in the dev client on 2026-08-30. What waits on the author, not on a session: **deciding on a release** — GitHub
-releases only, one jar per version, once the author calls it done.
+The author's plan after the Customize screen (2026-08-30: "then we'll handle releasing it + mod testing with
+other mods installed (again this is for a modpack)"):
+
+1. **Mod-compatibility testing** — the mod alongside the other mods the modpack will carry (the author picks
+   the list; VirtualMinecraft and the parked modpack inclusions in the sibling project's plan are the obvious
+   candidates). Look for: world-type list conflicts, other worldgen mods' biome/structure injection into hosted
+   eras, TerraBlender-style surface-rule hooks (Moderner Beta has its own compat for that), and client-side
+   colour/fog mods fighting the per-continent visuals.
+2. **First release** — GitHub releases only (never Modrinth), one jar per version from `./gradlew build`, with
+   the README's AI disclosure; the author decides the version number and when.
 
 Built 2026-08-30 (session 5): **the 1.20.1 backport** — Stonecutter two-version build, verified on a 1.20.1 server
-(state section above); how the versions differ in the code is in ARCHITECTURE.md.
+(state section above); how the versions differ in the code is in ARCHITECTURE.md. Then **the Customize screen**
+(pulled forward from Parked by the author): vanilla's Customize button on the Create World screen opens
+`ContinentsCustomizeScreen` — roster (seat/unseat/reorder every Moderner Beta preset plus the modern generator),
+continent size, ocean width, oceans, era-accurate, reset to config — and bakes the result into the world through the
+atlas codec (ARCHITECTURE "The Customize screen"). Verified by the author in the 26.2 dev client the same day
+(created a no-oceans world through it: "no oceans seems to work"); builds for 1.20.1 too, not yet clicked
+through there.
 
 Built 2026-08-30: **era-accurate cave biomes** (same `eraAccurate` flag; the author saw sulfur springs on Beta
 1.8.1 — Moderner Beta's presets inject vanilla's modern cave biomes under every era from Beta on; now trimmed per
@@ -240,10 +253,6 @@ and canyon carvers swapped in where the preset forces them, no carving at all wh
 - **Legacy Console styling** for some continents (re-console / Legacy4J) — rides with era-emulation.
 - Seasons, ambient sound, CTOV, Distant Horizons/Voxy, controller support — those are **modpack inclusions**,
   not this mod's code. The CTOV × VirtualMinecraft store compat hook belongs to pack-glue work, not here.
-- A config **screen**: the author's pointer (2026-08-30) is vanilla's **Customize** button on the Create World
-  screen — a `WorldPresetEditor` registered for the `continentsoftime:continents_of_time` preset, "the generally
-  accepted way of making world configs like what we do" — instead of a separate GUI. Client-only and optional
-  (the config file keeps working for servers). Still parked; do it when the author says.
 - **Coast biome transition** (author, 2026-08-29): once the ocean and the era biomes are settled, add a
   transition between them instead of the hard ocean-stops-here line. After the oceans work.
 - **Far Lands** (author, 2026-08-29: "not quite sure how I want to handle" them). Moderner Beta has a per-preset

@@ -88,6 +88,8 @@ Facts that shaped the design:
 - `atlas.layout.Seabed` — the ocean floor and the coast band as functions of the coast field.
 - `command.CotCommand` — `/cot seats | where | seat <era>`: the seat table, what the atlas thinks of where you
   stand, and a teleport onto any era's continent. Operator level 2.
+- `client.screen.*` and `mixin.client.WorldCreationUiStateMixin` — the Customize button on the Create World screen
+  (see "The Customize screen").
 - `network.AtlasInfoPayload` and `mixin.PlayerListMixin` — the server's description of an atlas level for a client
   that has this mod (seed, sizes, footprints, and the climate-sampling eras' biome settings), sent with every level
   info; `client.*` and `mixin.client.*` — the optional client half (see "Per-continent visuals").
@@ -246,6 +248,23 @@ no positional hook short of two more mixins); **precipitation and snow/ice by sa
 **climate distribution** flags are not positional either (fuzzy grass if any era wants it; smooth borders only if
 every climate era does). Debug text: Moderner Beta's F3 entries read its own level state, so they stay silent on an
 atlas; `/cot where` is the atlas's own.
+
+## The Customize screen (built 2026-08-30, client-side and optional)
+
+Vanilla's Create World screen shows a **Customize** button when the world-creation state finds a `PresetEditor`
+for the selected world type; the editors live in an immutable map (flat and single-biome worlds), so
+`mixin.client.WorldCreationUiStateMixin` answers the lookup for `continentsoftime:continents_of_time` — the same
+hook Moderner Beta uses for its own preset; each speaks only for its own, so they coexist. `client.screen.AtlasPresetEditor`
+supplies the editor and applies the result: the screen edits a copy of the generator's `AtlasSettings` (every
+Moderner Beta settings preset plus the modern generator as candidates; seated eras first in roster order — the
+timeline — with seat/unseat and move up/down; the two sizes as stepped sliders; the two switches; a reset to the
+config file's values), and Done rebuilds the overworld generator through the atlas codec: a hand-built
+`{"type": "continentsoftime:atlas", "biome_source": {"type": ..., "settings": ...}}` parsed with registry ops, i.e.
+exactly the path a world preset takes at load, so a customized world and a config-default one are the same thing
+with different numbers. The values are baked into the world like the config's would be. Servers and the config
+file need none of this. `client.screen.ContinentsCustomizeScreen` uses only layout and widget classes that are
+the same on 1.20.1 and 26.2; the list widget's constructor, entry drawing and clicks, and the 1.20.1 background
+are the `//?` spots.
 
 ## Era-accurate structures and cave biomes (built 2026-08-30, optional, default on)
 

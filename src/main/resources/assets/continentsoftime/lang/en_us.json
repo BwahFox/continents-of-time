@@ -1,4 +1,15 @@
 {
   "generator.continentsoftime.continents_of_time": "Continents of Time",
-  "generator.continentsoftime.single_era": "Continents of Time (single era)"
+  "generator.continentsoftime.single_era": "Continents of Time (single era)",
+  "continentsoftime.customize.title": "Customize Continents of Time",
+  "continentsoftime.customize.continent_size": "Continent size: %s",
+  "continentsoftime.customize.ocean_width": "Ocean width: %s",
+  "continentsoftime.customize.oceans": "Oceans",
+  "continentsoftime.customize.era_accurate": "Era-accurate",
+  "continentsoftime.customize.seat": "Seat era",
+  "continentsoftime.customize.unseat": "Unseat era",
+  "continentsoftime.customize.up": "Move up",
+  "continentsoftime.customize.down": "Move down",
+  "continentsoftime.customize.reset": "Config defaults",
+  "continentsoftime.customize.era.modern": "Modern (vanilla)"
 }
