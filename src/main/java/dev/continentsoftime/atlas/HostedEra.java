@@ -46,10 +46,10 @@ public record HostedEra(Identifier id, ChunkGenerator generator, BiomeSource bio
 	) {}
 
 	/**
-	 * @param eraAccurate whether to keep underground biomes newer than the era out of its continent (see
-	 *                    {@link EraCaveBiomes}); structures are filtered per chunk by the generator instead
+	 * Builds the era from registry references only: this runs while the world preset is decoded, before Moderner
+	 * Beta's preset registry is bound, so nothing may be resolved here (see {@link #resolved}).
 	 */
-	public static HostedEra create(Identifier era, Registries26 registries, boolean eraAccurate) {
+	public static HostedEra create(Identifier era, Registries26 registries) {
 		if (Eras.isVanilla(era)) {
 			BiomeSource biomeSource = MultiNoiseBiomeSource.createFromPreset(
 				registries.parameterLists().getOrThrow(MultiNoiseBiomeSourceParameterLists.OVERWORLD));
@@ -61,17 +61,38 @@ public record HostedEra(Identifier id, ChunkGenerator generator, BiomeSource bio
 		// A preset reference: Moderner Beta resolves the preset's three settings groups lazily, by id, through its
 		// preset registry, the same way its own world screen does.
 		ModernBetaSettingsPreset reference = ModernBetaSettingsPreset.referenced(era, registries.lookup());
-		ModernBetaSettings caveSettings = reference.caveBiomeSettings();
-		ModernBetaSettings resolvedCaves = caveSettings.mapPreset(registries.presets(), ModernBetaSettingsPreset::caveBiomeSettings);
-		if (eraAccurate) {
-			caveSettings = EraCaveBiomes.filter(caveSettings, resolvedCaves, EraVersion.of(era));
-			resolvedCaves = caveSettings.mapPreset(registries.presets(), ModernBetaSettingsPreset::caveBiomeSettings);
-		}
+		return modernerBeta(era, registries, reference.caveBiomeSettings(), List.of());
+	}
+
+	private static HostedEra modernerBeta(Identifier era, Registries26 registries, ModernBetaSettings caveSettings, List<String> caveBiomes) {
+		ModernBetaSettingsPreset reference = ModernBetaSettingsPreset.referenced(era, registries.lookup());
 		ModernBetaBiomeSource biomeSource = new ModernBetaBiomeSource(
 			registries.biomes(), registries.presets(), reference.biomeSettings(), caveSettings);
 		ModernBetaChunkGenerator generator = new ModernBetaChunkGenerator(
 			biomeSource, registries.presets(), registries.surfaceConfigs(), reference.chunkSettings());
-		return new HostedEra(era, generator, biomeSource, EraCaveBiomes.biomesIn(resolvedCaves));
+		return new HostedEra(era, generator, biomeSource, caveBiomes);
+	}
+
+	/**
+	 * Server start, registries bound: the era with its cave biomes known and, when the world is era-accurate,
+	 * trimmed to those its version had (see {@link EraCaveBiomes}) — a rebuilt biome source and generator in that
+	 * case, since Moderner Beta's take their settings at construction. Call before {@link #init}.
+	 */
+	public HostedEra resolved(Registries26 registries, boolean eraAccurate) {
+		if (!(biomeSource instanceof ModernBetaBiomeSource mb)) {
+			return this;
+		}
+		ModernBetaSettings reference = mb.getCaveBiomeSettings();
+		ModernBetaSettings resolvedCaves = reference.mapPreset(registries.presets(), ModernBetaSettingsPreset::caveBiomeSettings);
+		if (!eraAccurate) {
+			return new HostedEra(id, generator, biomeSource, EraCaveBiomes.biomesIn(resolvedCaves));
+		}
+		ModernBetaSettings trimmed = EraCaveBiomes.filter(reference, resolvedCaves, EraVersion.of(id));
+		if (trimmed == reference) {
+			return new HostedEra(id, generator, biomeSource, EraCaveBiomes.biomesIn(resolvedCaves));
+		}
+		ModernBetaSettings resolvedTrimmed = trimmed.mapPreset(registries.presets(), ModernBetaSettingsPreset::caveBiomeSettings);
+		return modernerBeta(id, registries, trimmed, EraCaveBiomes.biomesIn(resolvedTrimmed));
 	}
 
 	/** Moderner Beta creates its providers at server start (it hooks the server for its own generators); we do the same for ours. */
