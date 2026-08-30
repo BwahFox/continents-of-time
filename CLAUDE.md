@@ -22,7 +22,7 @@ Standing rules (carried from VirtualMinecraft, details in memory):
   Moderner Beta (MIT) is a **runtime dependency** that hosts the era generators and the reference for how they
   work; the code here is original and talks to its public classes, plus a few small mixins that relocate
   origin-anchored eras (listed and justified in ARCHITECTURE.md; keep them minimal, never copy its code). LGPL-3.0.
-- All GPU work on the RTX 5090 only, never the 4070. Keep disk use well under 200 GB.
+- Hardware and disk rules for the development machine live in the agent's memory, not here. Keep disk use modest.
 - The user has a self-declared feature-creep habit: park ideas in HANDOFF's "Parked" section, finish the
   current item. Era-emulation gameplay and Legacy Console styling are ALREADY PARKED — do not pull them in.
 - Model budget: default **Opus**; Fable is for work with no pattern to copy (novel noise/terrain math, thorny
