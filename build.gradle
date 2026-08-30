@@ -38,6 +38,12 @@ loom {
 		server {
 			runDir "run/server"
 		}
+		client {
+			// The dev client: `./gradlew runClient`. Fabric API and Moderner Beta are on its classpath already.
+			// `--args="--quickPlaySingleplayer <save>"` loads a world in run/client/saves directly.
+			runDir "run/client"
+			environmentVariable("__GL_THREADED_OPTIMIZATIONS", "0")
+		}
 	}
 }
 

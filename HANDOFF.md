@@ -61,6 +61,12 @@ RCON on 25598 password `cottest`, view distance 6). `./gradlew runServer`, then 
 client (the protocol is trivial: auth packet type 3, command type 2) — `locate biome`, `forceload`, `stop`.
 The `run/` directory is gitignored; reuse the world there rather than generating fresh ones.
 
+**Dev client:** `./gradlew runClient` (run dir `run/client`, Fabric API and Moderner Beta already on the
+classpath; offline "Player###" account). `./gradlew runClient --args="--quickPlaySingleplayer single_era_beta"`
+opens straight into a copy of the verified beta world (`run/client/saves/single_era_beta`, copied from the
+server world, so recreate it from `run/server/world` if it is ever missing). Verified 2026-08-29: the client
+loads it and renders beta 1.7.3 terrain; the world-type list on Create World is still unchecked by eye.
+
 ## Next work, in order
 
 1. **The atlas layout** — the mod's heart; **recommend the strongest model tier** for it: novel noise/geometry
