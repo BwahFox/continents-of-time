@@ -1,0 +1,70 @@
+plugins {
+	id 'net.fabricmc.fabric-loom' version "${loom_version}"
+}
+
+repositories {
+	// Loom adds the Minecraft/Fabric repositories automatically.
+	exclusiveContent {
+		forRepository {
+			maven {
+				name = "Modrinth"
+				url = "https://api.modrinth.com/maven"
+			}
+		}
+		filter {
+			includeGroup "maven.modrinth"
+		}
+	}
+}
+
+dependencies {
+	minecraft "com.mojang:minecraft:${project.minecraft_version}"
+	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+
+	// Moderner Beta: compiled against and loaded in the dev runtime; NOT bundled — packs install it themselves.
+	implementation "maven.modrinth:moderner-beta:${project.moderner_beta_version}"
+}
+
+// The test source set holds JavaExec harnesses (no Minecraft needed), not JUnit tests.
+tasks.named("test") {
+	failOnNoDiscoveredTests = false
+}
+
+loom {
+	accessWidenerPath = file("src/main/resources/continentsoftime.accesswidener")
+
+	runs {
+		server {
+			runDir "run/server"
+		}
+	}
+}
+
+processResources {
+	def version = project.version
+	inputs.property "version", version
+
+	filesMatching("fabric.mod.json") {
+		expand "version": version
+	}
+}
+
+tasks.withType(JavaCompile).configureEach {
+	it.options.release = 25
+}
+
+java {
+	withSourcesJar()
+	sourceCompatibility = JavaVersion.VERSION_25
+	targetCompatibility = JavaVersion.VERSION_25
+}
+
+jar {
+	def projectName = project.name
+	inputs.property "projectName", projectName
+
+	from("COPYING.LESSER") {
+		rename { "${it}_$projectName" }
+	}
+}

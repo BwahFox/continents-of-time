@@ -1,0 +1,32 @@
+{
+	"schemaVersion": 1,
+	"id": "continentsoftime",
+	"version": "${version}",
+	"name": "Continents of Time",
+	"description": "Every era of Minecraft terrain generation in one world: each historical generator is its own continent, separated by oceans.",
+	"authors": [
+		"BwahFox"
+	],
+	"contact": {
+		"sources": "https://github.com/BwahFox/continents-of-time",
+		"issues": "https://github.com/BwahFox/continents-of-time/issues"
+	},
+	"license": "LGPL-3.0-or-later",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"dev.continentsoftime.ContinentsOfTime"
+		]
+	},
+	"accessWidener": "continentsoftime.accesswidener",
+	"mixins": [
+		"continentsoftime.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=0.19.3",
+		"minecraft": "~26.2",
+		"java": ">=25",
+		"fabric-api": "*",
+		"moderner_beta": ">=5.0.0-alpha.3"
+	}
+}

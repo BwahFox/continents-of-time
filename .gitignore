@@ -21,3 +21,6 @@ Thumbs.db
 
 # project-private state: its own repo, private remotes only
 private/
+
+# Loom's generated dev access widener / remap scratch
+.loom/

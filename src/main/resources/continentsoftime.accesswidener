@@ -1,0 +1,5 @@
+accessWidener v2 official
+
+# The atlas extends the vanilla noise generator so the server builds the real overworld RandomState for its dimension
+# (the modern era needs it). Moderner Beta widens the same class for the same reason.
+extendable class net/minecraft/world/level/levelgen/NoiseBasedChunkGenerator
