@@ -135,6 +135,25 @@ public final class LayoutHarness {
 			}
 		}
 		check(bad == 0, bad + " chunk owner(s) disagree with the column under them");
+
+		// Open water is never handed to a finite era (its generator only makes border outside its level).
+		int finiteOwned = 0;
+		for (Seat seat : layout.seats()) {
+			if (seat.shaped()) {
+				continue;
+			}
+			for (int d = 32; d <= 2048; d *= 2) {
+				int[][] around = {{seat.minX() - d, seat.centerZ()}, {seat.maxX() + d, seat.centerZ()},
+					{seat.centerX(), seat.minZ() - d}, {seat.centerX(), seat.maxZ() + d}};
+				for (int[] p : around) {
+					if (layout.nearestEraAt(p[0], p[1]) == seat.era()) {
+						finiteOwned++;
+					}
+				}
+			}
+		}
+		check(finiteOwned == 0, finiteOwned + " open-water column(s) around finite levels are routed to the finite era");
+		System.out.println("ocean routing: never to a finite era");
 	}
 
 	/** Land bounding box per era: {minX, maxX, minZ, maxZ, landColumns}, measured at 8-block steps plus the box rim at 1-block steps. */

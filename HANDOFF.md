@@ -57,8 +57,10 @@ seams are next.**
   grown outward from home in **roster order — the roster is the timeline you sail along**; each infinite era is a
   domain-warped-noise continent inside its box, provably never touching the box edge and provably land at the
   centre; finite eras (Classic, Indev) are unshaped boxes the size of their level. ~0.14 µs per column, cached
-  per chunk. Ownership is per chunk (centre column); **open ocean is routed to the nearest continent's era for
-  now**, so between continents you still see that era's terrain until item 1 below lands. Design and the
+  per chunk. Ownership is per chunk (centre column); **open ocean is routed to the nearest *shaped* continent's era for
+  now** (never to a finite era, whose generator only makes its water-and-`the_void` border outside its level),
+  so between continents you still see that era's terrain, ending in a hard chunk-boundary cliff, until item 1
+  below lands. Seen in the dev client 2026-08-29: modern forest dropping into flat water at the seam — expected. Design and the
   reasoning behind every constant: ARCHITECTURE.md "The layout".
 - **Verified 2026-08-29 (session 3):** `./gradlew layoutTest` passes for four seeds (determinism, all 25 eras
   seated, origin + 512-block disc on home, land inside every box and ≤ 10,000 wide, land-to-land gaps ≥ 2,000 —

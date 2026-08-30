@@ -83,6 +83,7 @@ public final class ContinentLayout implements Layout {
 	private final Seat[] byEra;
 	private final Map<Long, Seat> byCell = new HashMap<>();
 	private final Shape[] shapes;
+	private final boolean hasShapedSeat;
 	private final ConcurrentHashMap<Long, byte[]> chunkCache = new ConcurrentHashMap<>();
 
 	private record Shape(Noise warpX, Noise warpZ, Noise detail, int octaves) {}
@@ -125,6 +126,7 @@ public final class ContinentLayout implements Layout {
 			}
 		}
 
+		this.hasShapedSeat = footprints.stream().anyMatch(Footprint::shaped);
 		this.seats = new ArrayList<>(footprints.size());
 		this.byEra = new Seat[footprints.size()];
 		this.shapes = new Shape[footprints.size()];
@@ -337,11 +339,20 @@ public final class ContinentLayout implements Layout {
 		return chunk[((blockX & 15) << 4) | (blockZ & 15)];
 	}
 
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>Only shaped continents are candidates: a finite era's generator produces its "beyond the level" border
+	 * outside its box, so it must never own open water. (If every era is finite, the nearest box wins.)
+	 */
 	@Override
 	public int nearestEraAt(int blockX, int blockZ) {
 		Seat best = null;
 		double bestDistance = Double.MAX_VALUE;
 		for (Seat seat : seats) {
+			if (!seat.shaped() && hasShapedSeat) {
+				continue;
+			}
 			double d = seat.distanceToBox(blockX, blockZ);
 			if (d < bestDistance) {
 				bestDistance = d;
