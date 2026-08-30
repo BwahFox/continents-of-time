@@ -61,6 +61,7 @@ public final class LayoutHarness {
 			timeColumns(layout);
 			checkSeabed(seed, layout);
 			checkNoOceans(seed, layout);
+			checkBeyondTheFirstPass(seed, layout);
 			printCrossings(layout);
 			render(layout, out.resolve(seed + ".png"));
 			renderZoom(layout, out.resolve(seed + "-home.png"));
@@ -303,6 +304,60 @@ public final class LayoutHarness {
 		check(changedLand == 0, changedLand + " land column(s) changed era with oceans off");
 		check(disagree == 0, disagree + " gap column(s) not routed to the nearest era / owner mismatch");
 		check(fieldNotInland == 0, fieldNotInland + " column(s) not read as inland with oceans off");
+	}
+
+	/**
+	 * Beyond the first pass every cell holds a continent of a repeatable era (shaped, not anchored): land at its box
+	 * centre, box inside its region, never a finite level or Legacy Console, deterministic across instances, and the
+	 * nearest-era answer far away is a repeatable era too.
+	 */
+	private static void checkBeyondTheFirstPass(long seed, ContinentLayout layout) {
+		ContinentLayout again = new ContinentLayout(seed, footprints(), HOME, MAX_SIZE, OCEAN);
+		java.util.Set<Integer> repeatable = new java.util.HashSet<>();
+		for (int era : layout.repeatable()) {
+			repeatable.add(era);
+		}
+		check(repeatable.size() == ERAS - FINITE.length - 1, "repeatable eras are the shaped, unanchored ones: " + repeatable.size());
+		check(!repeatable.contains(LEGACY_CONSOLE) && !repeatable.contains(FINITE[0]), "finite and bordered eras never repeat");
+		int missing = 0, wrongEra = 0, noLand = 0, outOfRegion = 0, nondeterministic = 0, cells = 0;
+		java.util.Set<Integer> seen = new java.util.HashSet<>();
+		int regionHalf = MAX_SIZE / 2;
+		int pitch = layout.pitch();
+		for (int cx = -40; cx <= 40; cx += 7) {
+			for (int cz = -40; cz <= 40; cz += 5) {
+				Seat seat = layout.seatInCell(cx, cz);
+				if (seat == null) {
+					missing++;
+					continue;
+				}
+				cells++;
+				boolean firstPass = layout.seats().contains(seat);
+				if (!firstPass && !repeatable.contains(seat.era())) {
+					wrongEra++;
+				}
+				seen.add(seat.era());
+				if (layout.eraAt(seat.centerX(), seat.centerZ()) != seat.era()) {
+					noLand++;
+				}
+				int cellCenterX = cx * pitch + ((cz & 1) != 0 ? pitch / 2 : 0);
+				int cellCenterZ = cz * pitch;
+				if (seat.minX() < cellCenterX - regionHalf || seat.maxX() > cellCenterX + regionHalf
+					|| seat.minZ() < cellCenterZ - regionHalf || seat.maxZ() > cellCenterZ + regionHalf) {
+					outOfRegion++;
+				}
+				if (!seat.equals(again.seatInCell(cx, cz)) || layout.eraAt(seat.centerX() + 777, seat.centerZ() - 333) != again.eraAt(seat.centerX() + 777, seat.centerZ() - 333)) {
+					nondeterministic++;
+				}
+			}
+		}
+		check(missing == 0, missing + " far cell(s) without a continent");
+		check(wrongEra == 0, wrongEra + " far continent(s) of a non-repeatable era");
+		check(noLand == 0, noLand + " far continent(s) without land at the box centre (" + cells + " cells)");
+		check(outOfRegion == 0, outOfRegion + " far box(es) outside their region (the ocean gap)");
+		check(nondeterministic == 0, nondeterministic + " far cell(s) differ between two instances");
+		check(seen.size() >= repeatable.size() / 2, "far cells draw from the roster broadly: " + seen.size() + " distinct eras");
+		int far = layout.nearestEraAt(400_000, -350_000);
+		check(repeatable.contains(far) || layout.eraAt(400_000, -350_000) == far, "nearest era far away is a repeatable era: " + far);
 	}
 
 	private static void checkSeabed(long seed, ContinentLayout layout) {

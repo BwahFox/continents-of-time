@@ -10,9 +10,12 @@ import java.util.SplittableRandom;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * The atlas layout: every era seated exactly once, the home era around the origin, each continent a noise-shaped
- * landmass inside a box no larger than {@code maxContinentSize}, and at least {@code oceanWidth} of open water
- * between any two boxes. Built once from the world seed; deterministic.
+ * The atlas layout: every era seated once in a first pass — the home era around the origin, the rest in roster
+ * order around it — and then, because the world is infinite, a continent in <em>every</em> further cell of the
+ * grid: a seeded pick among the roster's shaped, unanchored eras, so eras repeat outward for ever (finite levels
+ * and bordered eras exist once: their generators are translated to one seat). Each continent is a noise-shaped
+ * landmass inside a box no larger than {@code maxContinentSize}, with at least {@code oceanWidth} of open water
+ * between any two boxes. Built from the world seed; deterministic; the far cells are seated lazily and cached.
  *
  * <h2>Placement</h2>
  * Seats live on a hex-offset grid of cells with pitch {@code maxContinentSize + oceanWidth}: cell {@code (i, j)}
@@ -84,6 +87,11 @@ public final class ContinentLayout implements Layout {
 	private final Seat[] byEra;
 	private final Map<Long, Seat> byCell = new HashMap<>();
 	private final Shape[] shapes;
+	/** Roster eras that may repeat beyond the first pass: shaped and not anchored. */
+	private final int[] repeatable;
+	private final List<Footprint> footprints;
+	private final ConcurrentHashMap<Long, Seat> farSeats = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<Long, Shape> farShapes = new ConcurrentHashMap<>();
 	private final boolean hasShapedSeat;
 	private final ConcurrentHashMap<Long, byte[]> chunkCache = new ConcurrentHashMap<>();
 
@@ -139,6 +147,9 @@ public final class ContinentLayout implements Layout {
 		}
 
 		this.hasShapedSeat = footprints.stream().anyMatch(Footprint::shaped);
+		this.footprints = List.copyOf(footprints);
+		this.repeatable = java.util.stream.IntStream.range(0, footprints.size())
+			.filter(era -> footprints.get(era).shaped() && !footprints.get(era).anchored()).toArray();
 		this.seats = new ArrayList<>(footprints.size());
 		this.byEra = new Seat[footprints.size()];
 		this.shapes = new Shape[footprints.size()];
@@ -294,8 +305,31 @@ public final class ContinentLayout implements Layout {
 		if (Math.abs(x - shift - (long) i * pitch) > regionHalf) {
 			return null;
 		}
-		Seat seat = byCell.get(cellKey(i, j));
+		Seat seat = seatAt(i, j);
 		return seat != null && seat.containsBox(x, z) ? seat : null;
+	}
+
+	/** The seat in a cell: the first pass's, or a far seat built on demand; {@code null} only if no era can repeat. */
+	private Seat seatAt(int i, int j) {
+		long key = cellKey(i, j);
+		Seat seat = byCell.get(key);
+		if (seat != null || repeatable.length == 0) {
+			return seat;
+		}
+		return farSeats.computeIfAbsent(key, k -> {
+			SplittableRandom random = new SplittableRandom(mix(seed, (int) (k ^ (k >>> 32)), 7));
+			int era = repeatable[random.nextInt(repeatable.length)];
+			return seat(random, era, i, j, footprints.get(era), false);
+		});
+	}
+
+	/** The coastline noise of a shaped seat: per era in the first pass, per cell beyond it (repeats get their own coast). */
+	private Shape shapeOf(Seat seat) {
+		if (byEra[seat.era()] == seat) {
+			return shapes[seat.era()];
+		}
+		long key = cellKey(seat.cellX(), seat.cellZ());
+		return farShapes.computeIfAbsent(key, k -> shape((int) (k ^ (k >>> 32)) * 31 + seat.era(), seat));
 	}
 
 	/**
@@ -315,7 +349,7 @@ public final class ContinentLayout implements Layout {
 		if (!seat.shaped()) {
 			return 1;
 		}
-		return field(seat, shapes[seat.era()], x, z);
+		return field(seat, shapeOf(seat), x, z);
 	}
 
 	private static double field(Seat seat, Shape shape, int x, int z) {
@@ -347,7 +381,7 @@ public final class ContinentLayout implements Layout {
 		if (!seat.shaped()) {
 			return seat.era();
 		}
-		return field(seat, shapes[seat.era()], x, z) > 0 ? seat.era() : OCEAN;
+		return field(seat, shapeOf(seat), x, z) > 0 ? seat.era() : OCEAN;
 	}
 
 	@Override
@@ -380,12 +414,6 @@ public final class ContinentLayout implements Layout {
 		return chunk;
 	}
 
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>Only shaped continents are candidates: a finite era's generator produces its "beyond the level" border
-	 * outside its box, so it must never own open water. (If every era is finite, the nearest box wins.)
-	 */
 	/** Any land column makes the chunk that era's; boxes never share a chunk (they are {@code oceanWidth} apart). */
 	@Override
 	public int chunkOwner(int chunkX, int chunkZ) {
@@ -398,18 +426,44 @@ public final class ContinentLayout implements Layout {
 		return OCEAN;
 	}
 
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>Only shaped continents are candidates: a finite era's generator produces its "beyond the level" border
+	 * outside its box, so it must never own open water. (If every era is finite, the nearest box wins.) The
+	 * candidates are the seats in the column's cell and the cells around it (a box never leaves its region, so a
+	 * nearer box cannot hide further away); if none of those qualifies, the whole first pass is searched.
+	 */
 	@Override
 	public int nearestEraAt(int blockX, int blockZ) {
+		int j = Math.floorDiv(blockZ + pitch / 2, pitch);
+		int shift = (j & 1) != 0 ? pitch / 2 : 0;
+		int i = Math.floorDiv(blockX - shift + pitch / 2, pitch);
 		Seat best = null;
 		double bestDistance = Double.MAX_VALUE;
-		for (Seat seat : seats) {
-			if (!seat.shaped() && hasShapedSeat) {
-				continue;
+		for (int dj = -2; dj <= 2; dj++) {
+			for (int di = -2; di <= 2; di++) {
+				Seat seat = seatAt(i + di, j + dj);
+				if (seat == null || (!seat.shaped() && hasShapedSeat)) {
+					continue;
+				}
+				double d = seat.distanceToBox(blockX, blockZ);
+				if (d < bestDistance) {
+					bestDistance = d;
+					best = seat;
+				}
 			}
-			double d = seat.distanceToBox(blockX, blockZ);
-			if (d < bestDistance) {
-				bestDistance = d;
-				best = seat;
+		}
+		if (best == null) {
+			for (Seat seat : seats) {
+				if (!seat.shaped() && hasShapedSeat) {
+					continue;
+				}
+				double d = seat.distanceToBox(blockX, blockZ);
+				if (d < bestDistance) {
+					bestDistance = d;
+					best = seat;
+				}
 			}
 		}
 		return best.era();
@@ -424,9 +478,14 @@ public final class ContinentLayout implements Layout {
 	public int home() { return home; }
 	/** Whether the gaps between continents are open water ({@code true}) or the nearest era's own terrain. */
 	public boolean oceans() { return oceans; }
-	/** Seats in growth order; the first is home. */
+	/** The first pass's seats in growth order; the first is home. Far seats (repeats) are not listed. */
 	public List<Seat> seats() { return List.copyOf(seats); }
+	/** The first pass's seat of an era (the only one for finite and bordered eras). */
 	public Seat seatOf(int era) { return byEra[era]; }
+	/** The seat in a grid cell, first pass or repeat; {@code null} only when no era can repeat. */
+	public Seat seatInCell(int cellX, int cellZ) { return seatAt(cellX, cellZ); }
+	/** Roster indices of the eras that repeat beyond the first pass (shaped, not anchored). */
+	public int[] repeatable() { return repeatable.clone(); }
 
 	/** One line for the log. */
 	public String describe() {
@@ -439,6 +498,6 @@ public final class ContinentLayout implements Layout {
 		}
 		return seats.size() + " continent(s) on a hex grid with pitch " + pitch + " (max size " + maxSize
 			+ ", ocean " + oceanWidth + (oceans ? "" : ", NO OCEANS: gaps go to the nearest era") + "), cells x " + minCellX + ".." + maxCellX + ", z " + minCellZ + ".." + maxCellZ
-			+ ", home era " + home + " at the origin";
+			+ ", home era " + home + " at the origin; " + repeatable.length + " era(s) repeat in every further cell";
 	}
 }

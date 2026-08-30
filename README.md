@@ -20,6 +20,8 @@ and its old fog, where Moderner Beta has them). Nothing is playable in the inten
 - **Requires [Moderner Beta](https://modrinth.com/mod/moderner-beta)** (MIT), which provides every historical
   generator; this mod is the atlas around them and contains only its own code. Every world-generation type it
   offers gets a continent, plus the game's modern generator.
+- The world is infinite: past the first, timeline-ordered pass of every era, continents keep coming for ever
+  (eras repeat, each with its own coastline; the finite levels exist once).
 - Optional "no oceans" mode: no open water at all, continents meet at hard seams (`"oceans": false`).
 - Continent size is configurable (`config/continentsoftime.json`; default up to 10,000 × 10,000 blocks —
   continents are coastline-shaped and usually smaller).

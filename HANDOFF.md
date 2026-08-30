@@ -40,6 +40,14 @@ Minecraft-API-touching code in few, obvious places so that job stays small.
 - Config values are baked into a world when it is created (level.dat stores them); editing the config later
   only affects new worlds.
 
+- **The world is infinite (author, 2026-08-30: "we should be able to have more continents... multiple continents
+  of the same type... it's an infinite world"; built the same day).** The first pass seats the roster once in
+  timeline order around home; beyond it, every further grid cell holds a continent of a seeded-random shaped era,
+  each with its own coastline, for ever. Finite levels (Classic, Indev) and Legacy Console appear exactly once —
+  their generators are translated to one seat. Oceans still separate everything. Random rather than a repeated
+  timeline: the author's words were "multiple continents of the same type"; switching the pick to a repeating
+  order is a one-line change in `ContinentLayout.seatAt` if ever wanted.
+
 **The fantasy (author, 2026-08-29): sailing between continents is time travel.** The roster is the timeline; the
 layout seats eras in roster order outward from the modern home, so reordering the config roster reorders time.
 
@@ -153,14 +161,15 @@ World → World Type list** and works from there.
 
 ## Next work, in order (the author's pick, 2026-08-29)
 
-1. **"No oceans" option** — a config switch that skips ocean generation and leaves continents butting against
-   each other at chunk seams (the hard modern→Infdev 420 seam the author liked: "i like this"). Baked into the
-   world like the other settings.
-2. **Era-accurate structures, optional** — structures that did not exist in an era's version do not generate on
+1. **Era-accurate structures, optional** — structures that did not exist in an era's version do not generate on
    its continent: filter structure sets per era behind a config flag (the atlas owns structure placement state).
-3. **1.20.1 backport** — after 1–2; the mod counts as complete then.
+2. **1.20.1 backport** — after 1; the mod counts as complete then.
 
 Everything else stays parked "until a later date" (author, 2026-08-29).
+
+Built 2026-08-30: the **"no oceans" option** (verified on a scratch server: gap columns owned by the nearest era,
+field 1.0, no atlas ocean) and the **infinite atlas** (harness-verified; the author should sail or `/cot`-teleport
+past x 60,000 in a new world to see repeats — `/cot where` names the owner). Both need a new world.
 
 Closed 2026-08-29 without code: **era-accurate caves** are already true by construction — `applyCarvers` goes to
 the owning era's generator, and Moderner Beta's generator applies each preset's own cave rules there (its Beta cave
@@ -178,4 +187,7 @@ and canyon carvers swapped in where the preset forces them, no carving at all wh
 - **Coast biome transition** (author, 2026-08-29): once the ocean and the era biomes are settled, add a
   transition between them instead of the hard ocean-stops-here line. After the oceans work.
 - **Far Lands** (author, 2026-08-29: "not quite sure how I want to handle" them). Moderner Beta has a per-preset
-  toggle; at ±12.5M blocks they lie far outside every seat, so the layout forecloses nothing. Undecided.
+  toggle; at ±12.5M blocks they lie far outside every seat, so the layout forecloses nothing. Undecided. An idea
+  from the author (2026-08-30), parked by the author in the same breath: "what if all the continents began to
+  clash there? like... fighting over the same generation? making everything look messy... maybe not, i don't
+  want to add more features to this than what i already have planned".

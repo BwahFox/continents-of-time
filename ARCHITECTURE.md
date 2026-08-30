@@ -128,6 +128,15 @@ islands. Constants are named at the top of `ContinentLayout` with the reasoning 
 **Cost.** ~0.14 µs per column uncached (`eraAtColumn`); generation goes through a per-chunk 16×16 cache
 (`eraAt`). `fieldAt` exposes the signed field (positive inland, negative at sea) for the ocean/seam work.
 
+**Beyond the first pass (built 2026-08-30).** The world is infinite, so the grid does not stop at the roster: every
+cell outside the grown cluster gets a seat on demand (`seatAt`, cached), for an era drawn by a per-cell seeded
+random from the roster's *repeatable* eras — shaped and not anchored — placed with the same size/aspect/offset
+draws and its own per-cell coastline noise. Finite levels and bordered eras cannot repeat (one translated
+generator, one seat). `nearestEraAt` looks at the 5×5 cells around the column instead of the roster (a box never
+leaves its region, so nothing nearer can hide further out), falling back to the first pass if no candidate exists.
+`seats()`, `/cot seats` and the client payload describe the first pass only; far cells rebuild identically on the
+client from the same seed.
+
 **No oceans (option, built 2026-08-30).** `ContinentLayout(..., oceans = false)` seats everything identically but,
 when it fills the per-chunk cache, hands every gap column to `nearestEraAt` and reports the field as `1` (inland)
 everywhere. Nothing downstream changes: no column is sea, so the atlas never generates an ocean chunk or clamps a
