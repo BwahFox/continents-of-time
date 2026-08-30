@@ -168,8 +168,11 @@ World → World Type list** and works from there.
 Everything else stays parked "until a later date" (author, 2026-08-29).
 
 Built 2026-08-30: the **"no oceans" option** (verified on a scratch server: gap columns owned by the nearest era,
-field 1.0, no atlas ocean) and the **infinite atlas** (harness-verified; the author should sail or `/cot`-teleport
-past x 60,000 in a new world to see repeats — `/cot where` names the owner). Both need a new world.
+field 1.0, no atlas ocean) and the **infinite atlas** (harness-verified, and probed live on the seed-20260829 server: (100000, 100000) has a
+Release 1.6.4 repeat as its nearest continent, (100000, −130000) is inland on a Release 1.1 repeat and generates
+stone/air normally — both far outside the first pass). `/cot seat` teleports to first-pass seats only; use
+`/cot where` or `/tp` to explore repeats. Both features need a new world (the layout is built at server start from
+the baked settings, so an old world's far cells do get repeats on first visit, but no-oceans is baked).
 
 Closed 2026-08-29 without code: **era-accurate caves** are already true by construction — `applyCarvers` goes to
 the owning era's generator, and Moderner Beta's generator applies each preset's own cave rules there (its Beta cave
